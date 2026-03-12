@@ -3,10 +3,7 @@ import {computed, onMounted, reactive, ref} from "vue";
 import PptTools from "../components/PptTools.vue";
 import FlySvg from "../components/FlySvg.vue";
 const sliders = reactive([
-  { width:200, height:100, stroke:"white", fill:"lightblue"},
-  { width:200, height:100, stroke:"white", fill:"white"},
-  { width:200, height:100, stroke:"white", fill:"white"},
-  { width:200, height:100, stroke:"white", fill:"white"},
+  { width:200, height:100, stroke:"white", fill:"lightblue",image:null},
 ])
 const contextMenu = ref({
   show: false,    // 是否显示菜单
@@ -80,6 +77,12 @@ window.onresize = () => {
       <svg :width="width * 4 / 24" :height="height - 60">
         <text v-for="(slider,index) in sliders"  :x="0" :y="slider.height * (index+0.2) + 10 * index" fill="#666666" >{{index + 1}} </text>
         <rect v-for="(slider,index) in sliders" :x="20" :y="slider.height * (index) + 10 * index" :width="slider.width" :height="slider.height" :stroke="slider.stroke" :fill="slider.fill"></rect>
+        <image v-for="(slider,index) in sliders"
+               :x="20" :y="slider.height * (index) + 10 * index"
+               :width="slider.width" :height="slider.height"
+               :href="slider.image || ''" title="网络图片"
+        />
+
       </svg>
     </a-col>
     <a-col :span="20" style="padding: 10px">
@@ -89,6 +92,7 @@ window.onresize = () => {
               :fill="drawFillColor"
               :stroke="drawStrokeColor"
               :font-size="drawFontSize"
+              @changeImage="(a)=> sliders[0].image = a"
       ></FlySvg>
     </a-col>
   </a-row>

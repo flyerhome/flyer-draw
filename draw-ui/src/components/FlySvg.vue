@@ -1,5 +1,5 @@
 <script setup>
-import {nextTick, onUnmounted, reactive, ref} from "vue";
+import {nextTick, onMounted, onUnmounted, reactive, ref, watch} from "vue";
 
 const props = defineProps({
   width:Number,
@@ -12,7 +12,7 @@ const props = defineProps({
   fontSize:Number,
   textAnchor:String,
 })
-// defineEmits(["mousedown","mouseup","mousemove","mouseleave"])
+const emits = defineEmits(["changeImage"])
 const svgRef = ref();
 
 const shiftFlag = ref(false)
@@ -190,7 +190,7 @@ const mousedown = (e) => {
       let pt = createSVGPoint(e)
       if (selected.points) {
         selected.start = {
-          points:selected.points,
+          points:JSON.parse(JSON.stringify(selected.points)),
         }
       } else {
         selected.start = {
@@ -237,9 +237,6 @@ const mouseup = (e) => {
   if (props.type === 'rect') {
     current.id = null
   }
-  /*if (props.type === 'text') {
-    current.id = null
-  }*/
 }
 const mousemove = (e) => {
   if (!!current.selected) {
@@ -272,22 +269,6 @@ const mousemove = (e) => {
   if (props.type === 'polygon') {
     drawPolygon(e, exist)
   }
-
-
-}
-const mouseleave = (e) => {
-  return;
-  if (!!!current.id) {
-    return
-  }
-  if (props.type === 'circle') {
-    current.id = null
-  }
-  if (props.type === 'rect') {
-    current.id = null
-  }
-
-
 }
 const keydown = (e) => {
   console.log("keydown", e.key)
@@ -310,6 +291,7 @@ const keydown = (e) => {
       current.id = null;
     }
   }
+
 }
 
 const keyup = (e) => {
@@ -374,6 +356,22 @@ onUnmounted(() => {
   document.removeEventListener('keyup',keyup)
   document.removeEventListener('keydown',keydown)
 })
+// 监听配置（覆盖 SVG 核心变化）
+const observerConfig = {
+  childList: true, // 监听子元素增删
+  attributes: true, // 监听属性修改
+  subtree: true, // 监听 SVG 所有子元素
+  attributeOldValue: true, // 记录属性旧值
+  attributeFilter: ['points', 'fill', 'cx', 'cy', 'r'] // 只监听关键属性（优化性能）
+};
+const mutationCallback = (mutationsList) => {
+  const svgString = new XMLSerializer().serializeToString(svgRef.value);
+  // 2. 将SVG转为DataURL（base64）
+  const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
+  console.log(svgDataUrl)
+  emits('changeImage', svgDataUrl)
+}
+setInterval(mutationCallback, 50)
 
 </script>
 
@@ -404,10 +402,10 @@ onUnmounted(() => {
                  :style="{ stroke: d.stroke, strokeWidth: 2, fill: d.fill, cursor: 'move' }"
         />
 
-        <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id">
+        <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
           <div class="text-editor" :contenteditable="current.id === d.id" :id="d.id"
                :style="{
-          position:'absolute', userSelect:'none',padding:'5px',minWidth:'5px', border:current.id === d.id ?'1px dashed #ccc':'unset',
+          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px', border:current.id === d.id ?'1px dashed #ccc':'unset',
           textAlign:'left', left:d.x - d.fontSize/2 +'px', top:d.y - d.fontSize/2 +'px', lineHeight:1.5, fontSize:d.fontSize + 'px',
           color:d.fill,fontFamily:d.fontFamily
         }"
