@@ -1,19 +1,20 @@
 <script setup>
 import {nextTick, onMounted, onUnmounted, reactive, ref, watch} from "vue";
-
 const props = defineProps({
   width:Number,
   height:Number,
-  type:String,
-  fill:String,
-  stroke:String,
-  strokeWidth:Number,
-  fontFamily:String,
-  fontSize:Number,
-  textAnchor:String,
+})
+const toolData = reactive({
+  type:'',
+  fill:'',
+  stroke:'',
+  strokeWidth:0,
+  fontFamily:'黑体',
+  fontSize:26
 })
 const emits = defineEmits(["changeImage"])
 const svgRef = ref();
+const canvasRef = ref();
 
 const shiftFlag = ref(false)
 const ctrlFlag = ref(false)
@@ -24,6 +25,27 @@ const current = reactive({
   id:null,
   selected:null
 })
+
+
+const toolUpdate = (data) => {
+  console.log("tool发生了变更", data)
+  toolData.type = data.type;
+  toolData.fontSize = data.fontSize
+  toolData.fill = data.fill
+  toolData.stroke = data.stroke
+  toolData.strokeWidth = data.strokeWidth
+  toolData.fontFamily = data.fontFamily||'黑体'
+  if (data.clearSvg === 1) {
+    clearSvg()
+    data.clearSvg = null
+  }
+  if (data.exportPng === 1) {
+    exportPng()
+    data.exportPng = null;
+  }
+}
+
+
 const transferPoint = (str) => {
   return {
     x:str.substring(0, str.indexOf(',')),
@@ -52,9 +74,9 @@ const drawCircle = (e, obj) => {
   obj.x = pt.x
   obj.y = pt.y
   obj.r = 0
-  obj.fill = props.fill||'lightblue'
-  obj.stroke = props.stroke||'green'
-  obj.strokeWidth = props.strokeWidth||2
+  obj.fill = toolData.fill||'lightblue'
+  obj.stroke = toolData.stroke||'green'
+  obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
 }
@@ -100,9 +122,9 @@ const drawRect = (e, obj) => {
   obj.y = pt.y
   obj.rx = 0
   obj.ry = 0
-  obj.fill = props.fill||'lightblue'
-  obj.stroke = props.stroke||'green'
-  obj.strokeWidth = props.strokeWidth||2
+  obj.fill = toolData.fill||'lightblue'
+  obj.stroke = toolData.stroke||'green'
+  obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
 }
@@ -138,9 +160,9 @@ const drawPolygon = (e, obj, add) => {
   }
   obj.type = 'polygon'
   obj.points = [pt.x +"," + pt.y,pt.x +"," + pt.y]
-  obj.fill = props.fill||'lightblue'
-  obj.stroke = props.stroke||'green'
-  obj.strokeWidth = props.strokeWidth||2
+  obj.fill = toolData.fill||'lightblue'
+  obj.stroke = toolData.stroke||'green'
+  obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
   console.log("画了一个多边形==============", obj)
@@ -159,11 +181,10 @@ const drawText = (e, obj) => {
   obj.x = pt.x
   obj.y = pt.y
   obj.text = ''
-  obj.fontFamily = props.fontFamily ||"黑体"
-  obj.fontSize = props.fontSize ||30
-  obj.textAnchor = props.textAnchor ||"middle"
-  obj.fill = props.fill||'lightblue'
-  obj.strokeWidth = props.strokeWidth||2
+  obj.fontFamily = toolData.fontFamily ||"黑体"
+  obj.fontSize = toolData.fontSize ||30
+  obj.fill = toolData.fill||'lightblue'
+  obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
   nextTick(() => {
@@ -211,14 +232,14 @@ const mousedown = (e) => {
   if (!!!current.id) {
     current.id = Date.now()
   }
-  if (props.type === 'circle')
+  if (toolData.type === 'circle')
     drawCircle(e, {id:current.id})
-  if (props.type === 'rect')
+  if (toolData.type === 'rect')
     drawRect(e, {id:current.id})
-  if (props.type === 'polygon') {
+  if (toolData.type === 'polygon') {
     drawPolygon(e, {id:current.id}, 1)
   }
-  if (props.type === 'text') {
+  if (toolData.type === 'text') {
     drawText(e, {id:current.id})
   }
 }
@@ -231,10 +252,10 @@ const mouseup = (e) => {
   if (!!!current.id) {
     return
   }
-  if (props.type === 'circle') {
+  if (toolData.type === 'circle') {
       current.id = null
   }
-  if (props.type === 'rect') {
+  if (toolData.type === 'rect') {
     current.id = null
   }
 }
@@ -260,13 +281,13 @@ const mousemove = (e) => {
     return
   }
   const exist = drawList.value.find(item => item.id === current.id);
-  if (props.type === 'circle') {
+  if (toolData.type === 'circle') {
     drawCircle(e, exist)
   }
-  if (props.type === 'rect') {
+  if (toolData.type === 'rect') {
     drawRect(e, exist)
   }
-  if (props.type === 'polygon') {
+  if (toolData.type === 'polygon') {
     drawPolygon(e, exist)
   }
 }
@@ -283,10 +304,10 @@ const keydown = (e) => {
   }
   if (e.key === 'Escape') {
   }
-  if (e.key === 'Enter' && props.type === 'polygon') {
+  if (e.key === 'Enter' && toolData.type === 'polygon') {
     current.id = null;
   }
-  if (e.key === 'Enter' && props.type === 'text') {
+  if (e.key === 'Enter' && toolData.type === 'text') {
     if (ctrlFlag.value) {
       current.id = null;
     }
@@ -347,36 +368,52 @@ const clearSvg = (e) => {
   drawList.value = []
 }
 const exportPng = (e) => {
+  const svgString = new XMLSerializer().serializeToString(svgRef.value);
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
 
+  const image = new Image(props.width * 20 / 24,props.height - 60)
+  image.src = svgUrl
+  image.crossOrigin = 'anonymous'; // 解决跨域渲染问题;
+  image.onload = (e) => {
+    const canvas = canvasRef.value
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const pngUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = pngUrl;
+    a.download = 'flyerDraw.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 清理临时资源
+    URL.revokeObjectURL(svgUrl);
+  }
 }
-defineExpose({createSVGPoint,clearSvg,exportPng})
+defineExpose({createSVGPoint,toolUpdate})
 
-onUnmounted(() => {
-  document.removeEventListener('click',click)
-  document.removeEventListener('keyup',keyup)
-  document.removeEventListener('keydown',keydown)
-})
-// 监听配置（覆盖 SVG 核心变化）
-const observerConfig = {
-  childList: true, // 监听子元素增删
-  attributes: true, // 监听属性修改
-  subtree: true, // 监听 SVG 所有子元素
-  attributeOldValue: true, // 记录属性旧值
-  attributeFilter: ['points', 'fill', 'cx', 'cy', 'r'] // 只监听关键属性（优化性能）
-};
 const mutationCallback = (mutationsList) => {
   const svgString = new XMLSerializer().serializeToString(svgRef.value);
   // 2. 将SVG转为DataURL（base64）
   const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
-  console.log(svgDataUrl)
   emits('changeImage', svgDataUrl)
 }
-setInterval(mutationCallback, 50)
+let timer = setInterval(mutationCallback, 88)
+
+onUnmounted(() => {
+  document.removeEventListener('click',dblclick)
+  document.removeEventListener('keyup',keyup)
+  document.removeEventListener('keydown',keydown)
+  if (timer) {
+    clearInterval(timer)
+    timer = null;
+  }
+})
 
 </script>
 
 <template>
-  <div style="position: relative;border: 1px dashed gray;padding: 0;" :style="{width:width * 20 / 24 + 'px'}">
+  <div style="position: absolute;border: 1px dashed gray;padding: 0;z-index: 999;" :style="{width:width * 20 / 24 + 'px'}">
     <svg ref="svgRef" :width="width * 20 / 24" :height="height - 60"
          @mousedown="mousedown"
          @mouseup="mouseup"
@@ -393,13 +430,13 @@ setInterval(mutationCallback, 50)
                 :r="d.r"
                 :cx="d.x"
                 :cy="d.y"
-                :style="{ stroke: d.stroke, strokeWidth: 2, fill: d.fill, cursor: 'move' }"
+                :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"
         />
         <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
-              :style="{ stroke: d.stroke, strokeWidth: 2, fill: d.fill, cursor: 'move' }"></rect>
+              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"></rect>
 
         <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
-                 :style="{ stroke: d.stroke, strokeWidth: 2, fill: d.fill, cursor: 'move' }"
+                 :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"
         />
 
         <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
@@ -415,7 +452,9 @@ setInterval(mutationCallback, 50)
 
     </svg>
 
-
+  </div>
+  <div style="position: absolute;border: 1px dashed gray;padding: 0;z-index: 1;" :style="{width:width * 20 / 24 + 'px'}">
+    <canvas ref="canvasRef"  :width="width * 20 / 24" :height="height - 60"></canvas>
   </div>
 </template>
 
