@@ -25,7 +25,11 @@ const showContextMenu = (e) => {
     y: e.clientY
   };
 }
-const shiftFlag = ref(false)
+
+const toolData = reactive({
+
+})
+
 const drawType = ref()
 const drawFillColor = ref()
 const drawStrokeColor = ref()
@@ -42,10 +46,11 @@ const exportPng = (e) => {
 
 }
 const drawChange = (data) => {
-  drawType.value = data.type
-  drawFillColor.value = data.fillColor
-  drawStrokeColor.value = data.strokeColor
-  drawFontSize.value = data.fontSize
+  // drawType.value = data.type
+  // drawFillColor.value = data.fillColor
+  // drawStrokeColor.value = data.strokeColor
+  // drawFontSize.value = data.fontSize
+  svgEl.value.toolUpdate(data)
 }
 
 const width = ref(2000)
@@ -65,7 +70,7 @@ window.onresize = () => {
   <div style="width:100%;height: 100%;padding:0;background-color: #dddddd;">
   <a-row :gutter="[10,10]" style="padding: 5px;border-bottom: 1px solid #bbbbbb">
     <a-col :span="24">
-      <PptTools
+      <PptTools v-model:toolData="toolData"
           @drawChange="(data) => drawChange(data)"
           @clearSvg="clearSvg"
           @exportPng="exportPng"
@@ -86,12 +91,8 @@ window.onresize = () => {
       </svg>
     </a-col>
     <a-col :span="20" style="padding: 10px">
-      <FlySvg ref="svgEl" :draw-list="drawList"
+      <FlySvg ref="svgEl"
               :width="width" :height="height - 30"
-              :type="drawType"
-              :fill="drawFillColor"
-              :stroke="drawStrokeColor"
-              :font-size="drawFontSize"
               @changeImage="(a)=> sliders[0].image = a"
       ></FlySvg>
     </a-col>

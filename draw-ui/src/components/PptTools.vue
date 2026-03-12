@@ -1,44 +1,89 @@
 <template>
-  <a-select
-      v-model:value="data.type"
-      :allowClear="true"
-      style="width: 100px"
-      placeholder="选择形状"
-      :options="options"
-      @change="(e) => $emit('drawChange', data)"
-  ></a-select>
-  <a-input type="color" v-model:value="data.fillColor" style="width: 100px" @change="(e) => $emit('drawChange', data)"></a-input>
-  <a-input type="color" v-model:value="data.strokeColor" style="width: 100px" @change="(e) => $emit('drawChange', data)"></a-input>
-  <a-input type="number" v-model:value="data.fontSize" style="width: 100px" @change="(e) => $emit('drawChange', data)"></a-input>
-  <a-button @click="emits('clearSvg')">清空画布</a-button>
-  <a-button @click="emits('exportPng')">导出PNG</a-button>
+  <a-row>
+    <a-col :span="2">
+      <a-form-item
+          label="形状"
+          name="type"
+      >
+      <a-select
+          v-model:value="data.type"
+          :allowClear="true"
+          style="width: 90px"
+          placeholder="选择形状"
+          :options="options"
+          @change="(e) => $emit('drawChange', data)"
+      ></a-select>
+      </a-form-item>
+    </a-col>
+    <a-col :span="2">
+      <a-form-item
+          label="填充色"
+          name="fill"
+      >
+      <a-input type="color" v-model:value="data.fill" style="width: 80px" @change="(e) => $emit('drawChange', data)"></a-input>
+      </a-form-item>
+    </a-col>
+    <a-col :span="2">
+      <a-form-item
+          label="边框色"
+          name="stroke"
+      >
+      <a-input type="color" v-model:value="data.stroke" style="width: 80px" @change="(e) => $emit('drawChange', data)"></a-input>
+      </a-form-item>
+    </a-col>
+    <a-col :span="2">
+      <a-form-item
+          label="字体大小"
+          name="fontSize"
+      >
+        <a-input type="number" v-model:value="data.fontSize" style="width: 61px" @change="(e) => $emit('drawChange', data)"></a-input>
+        <span> px </span>
+      </a-form-item>
+    </a-col>
+    <a-col :span="4">
+      <a-form-item
+        label="边框大小"
+        name="cc"
+    >
+      <a-input type="number" min="0" max="10" v-model:value="data.strokeWidth" style="width: 61px" @change="(e) => $emit('drawChange', data)"></a-input>
+        <span> px </span>
+    </a-form-item>
+    </a-col>
+    <a-col :span="3"><a-button @click="(e) => {data.clearSvg = 1;$emit('drawChange', data)}">清空画布</a-button> <a-button @click="(e) => {data.exportPng = 1;$emit('drawChange', data)}">导出PNG</a-button></a-col>
+  </a-row>
+
+
+
 </template>
 <script setup>
 import {onMounted, reactive, ref} from 'vue';
 const emits = defineEmits(["drawChange", 'clearSvg'])
-
+defineProps({
+  toolsData:{
+    type:Object,
+    default:{}
+  }
+})
 const options = reactive([
   {value:'circle', label:'圆'},
   {value:'rect', label:'矩形'},
   {value:'polygon', label:'多边形'},
   {value:'text', label:'文本'},
 ])
-const value = ref()
-const fillColor = ref()
-const strokeColor = ref()
-const fontSize = ref()
 const data = reactive({
   type:'',
-  fillColor:'',
-  strokeColor:'',
+  fill:'',
+  stroke:'',
   fontSize:20,
+  strokeWidth:0,
 })
 
 onMounted(()=> {
   data.type = 'circle'
-  data.fillColor = '#00ff00'
-  data.strokeColor = '#0000ff'
+  data.fill = '#00ff00'
+  data.stroke = '#0000ff'
   data.fontSize = 20;
+  data.strokeWidth = 0;
   emits("drawChange", data)
 })
 </script>
