@@ -18,8 +18,7 @@
 1.  访问地址
     * https://flyerhome.github.io/flyer-draw/
 2. 截图样例
-    ![img_1.png](img_1.png)
-
+    ![img.png](img.png)
 3. 操作绘图
    * 画圆和画矩形直接鼠标拖拽即可
    * 画矩形支持 shift长按 画正方形
