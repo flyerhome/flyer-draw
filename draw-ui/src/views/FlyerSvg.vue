@@ -1,5 +1,7 @@
 <script setup>
-import {nextTick, onMounted, onUnmounted, reactive, ref, watch} from "vue";
+import {nextTick, onMounted, onUnmounted, reactive, ref} from "vue";
+import FlyerRight from "./FlyerRight.vue";
+
 const props = defineProps({
   width:Number,
   height:Number,
@@ -15,6 +17,7 @@ const toolData = reactive({
 const emits = defineEmits(["changeImage"])
 const svgRef = ref();
 const canvasRef = ref();
+const flyerRightRef = ref();
 
 const shiftFlag = ref(false)
 const ctrlFlag = ref(false)
@@ -23,8 +26,35 @@ const altFlag = ref(false)
 const drawList = ref([])
 const current = reactive({
   id:null,
-  selected:null
+  selected:null,
+  moving:false
 })
+const getSelectStroke = (d) => {
+  /*if (current.selected && current.selected.id === d.id) {
+    return '#ff0000'
+  }*/
+  return d.stroke
+}
+const getSelectFill = (d) => {
+  return d.fill
+}
+const getSelectStrokeWidth = (d) => {
+  /*if (current.selected && current.selected.id === d.id) {
+    if (!!!d.strokeWidth) {
+      return 2;
+    }
+    if (d.strokeWidth <= 1) {
+      return 2;
+    }
+  }*/
+  return d.strokeWidth
+}
+const getSelectBorder = (d) => {
+  /*if (current.selected && current.selected.id === d.id) {
+    return '2px dashed #0ff5ed'
+  }*/
+  return current.id === d.id ?'1px dashed #ccc':'unset'
+}
 
 
 const toolUpdate = (data) => {
@@ -68,7 +98,7 @@ const drawCircle = (e, obj) => {
     const dy = pt.y - exist.y;
      // 勾股定理算半径
     exist.r = Math.sqrt(dx * dx + dy * dy)
-    return
+    return exist
   }
   obj.type = 'circle'
   obj.x = pt.x
@@ -79,6 +109,7 @@ const drawCircle = (e, obj) => {
   obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
+  return obj;
 }
 const drawRect = (e, obj) => {
   console.log("画矩形了", obj)
@@ -111,7 +142,7 @@ const drawRect = (e, obj) => {
       }*/
 
     }
-    return
+    return exist
   }
   obj.type = 'rect'
   obj.width = 0
@@ -127,10 +158,10 @@ const drawRect = (e, obj) => {
   obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
+  return obj
 }
 
 const drawPolygon = (e, obj, add) => {
-  // console.log("画多边形了", obj)
   const id = obj.id;
   const exist = drawList.value.find(item => item.id === id);
   const pt = createSVGPoint(e);
@@ -156,7 +187,7 @@ const drawPolygon = (e, obj, add) => {
       exist.points.push(pt.x +"," + pt.y)
     }
 
-    return
+    return exist
   }
   obj.type = 'polygon'
   obj.points = [pt.x +"," + pt.y,pt.x +"," + pt.y]
@@ -165,7 +196,7 @@ const drawPolygon = (e, obj, add) => {
   obj.strokeWidth = toolData.strokeWidth
 
   drawList.value.push(obj)
-  console.log("画了一个多边形==============", obj)
+  return obj;
 }
 
 const drawText = (e, obj) => {
@@ -175,7 +206,7 @@ const drawText = (e, obj) => {
   const pt = createSVGPoint(e);
   if (!!exist) {
 
-    return
+    return exist
   }
   obj.type = 'text'
   obj.x = pt.x
@@ -195,11 +226,13 @@ const drawText = (e, obj) => {
     },30)
 
   })
+  return obj;
 }
 
 
 
 const mousedown = (e) => {
+  syncLeftSlider()
   if (e.target.id && !current.id) {
     console.log("selected===", e.target)
     let targetId = e.target.id;
@@ -225,42 +258,31 @@ const mousedown = (e) => {
       }
 
       current.selected = selected;
+      current.moving = true
       return;
     }
+
   }
+  current.selected = null
   console.log("mousedown===", e.target)
   if (!!!current.id) {
     current.id = Date.now()
   }
+  let obj = null;
   if (toolData.type === 'circle')
-    drawCircle(e, {id:current.id})
+    obj = drawCircle(e, {id:current.id})
   if (toolData.type === 'rect')
-    drawRect(e, {id:current.id})
+    obj = drawRect(e, {id:current.id})
   if (toolData.type === 'polygon') {
-    drawPolygon(e, {id:current.id}, 1)
+    obj = drawPolygon(e, {id:current.id}, 1)
   }
   if (toolData.type === 'text') {
-    drawText(e, {id:current.id})
+    obj = drawText(e, {id:current.id})
   }
-}
-const mouseup = (e) => {
-  console.log("mouseup===",e.target)
-  if (!!current.selected) {
-    current.selected = null
-    return;
-  }
-  if (!!!current.id) {
-    return
-  }
-  if (toolData.type === 'circle') {
-      current.id = null
-  }
-  if (toolData.type === 'rect') {
-    current.id = null
-  }
+
 }
 const mousemove = (e) => {
-  if (!!current.selected) {
+  if (!!current.selected && current.moving) {
     // 鼠标移动当前位置 和鼠标开始的位置 的位置差就是
     let pt = createSVGPoint(e)
     if (current.selected.points) {
@@ -290,7 +312,44 @@ const mousemove = (e) => {
   if (toolData.type === 'polygon') {
     drawPolygon(e, exist)
   }
+  syncLeftSlider()
 }
+
+
+const mouseup = (e) => {
+  console.log("mouseup===",e.target)
+  current.moving = false;
+
+  if (toolData.type === 'text' || toolData.type === 'polygon') {
+    // 文本和多边形 不能依靠mouseup 事件来取消绘图
+    // 文本通过ctrl+enter 取消文本编辑 keyup 事件来控制
+    // 多边形通过Enter 或esc 结束绘制  keyup 事件开控制
+    if (current.selected) {
+      flyerRightRef.value.show(current.selected)
+    }
+    return;
+  }
+  if (current.id) {
+    const exist = drawList.value.find(item => item.id === current.id)
+    let condition = exist && exist.type === 'circle' && exist.r <= 5;
+    condition = condition || (exist && exist.type === 'rect' && (exist.width <= 5 && exist.height <= 5))
+    condition = condition || (exist  && exist.type === 'polygon' && (exist.points.length <= 2))
+    if (condition) {
+      drawList.value = drawList.value.filter(item=> item.id !== current.id)
+      current.selected =null;
+      current.id = null
+      return;
+    }
+    current.selected = drawList.value.find(item => item.id === current.id);
+    current.id = null
+  }
+  if (current.selected) {
+    flyerRightRef.value.show(current.selected)
+  }
+}
+
+
+
 const keydown = (e) => {
   console.log("keydown", e.key)
   if (e.key === 'Shift') {
@@ -304,6 +363,13 @@ const keydown = (e) => {
   }
   if (e.key === 'Escape') {
   }
+
+}
+
+const keyup = (e) => {
+  console.log("keyup", e.key)
+
+
   if (e.key === 'Enter' && toolData.type === 'polygon') {
     current.id = null;
   }
@@ -313,19 +379,6 @@ const keydown = (e) => {
     }
   }
 
-}
-
-const keyup = (e) => {
-  console.log("keyup", e.key)
-  if (e.key === 'Shift') {
-    shiftFlag.value = false
-  }
-  if (e.key === 'Control') {
-    ctrlFlag.value = false
-  }
-  if (e.key === 'Alt') {
-    altFlag.value = false
-  }
   if (e.key === 'Escape') {
     if (!!current.id) {
       const exist = drawList.value.find(item => item.id === current.id);
@@ -334,6 +387,15 @@ const keyup = (e) => {
         current.id = null;
       }
     }
+  }
+  if (e.key === 'Shift') {
+    shiftFlag.value = false
+  }
+  if (e.key === 'Control') {
+    ctrlFlag.value = false
+  }
+  if (e.key === 'Alt') {
+    altFlag.value = false
   }
 }
 const dblclick = (e) => {
@@ -397,17 +459,38 @@ const mutationCallback = (mutationsList) => {
   // 2. 将SVG转为DataURL（base64）
   const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
   emits('changeImage', svgDataUrl)
+  if ((Date.now() - timer.time) > 1000 * 10) {// 超过30秒 自动停止定时器 避免页面卡顿
+      clearTimer()
+  }
 }
-let timer = setInterval(mutationCallback, 88)
+let timer = {
+  time:null,
+  obj:null
+}
+const syncLeftSlider = () => {
+  if (timer.obj != null) {
+    //有操作了 重新计时
+    timer.time = Date.now()
+    console.log("重新操作了，重新计时")
+    return;
+  }
+  timer.time = Date.now()
+  timer.obj = setInterval(mutationCallback, 60)
+}
+const clearTimer = () => {
+  if (timer.obj) {
+    clearInterval(timer.obj)
+    console.log("停止了同步定时器", timer.time, Date.now(), '执行了' + (Date.now() - timer.time)/1000 + 's')
+    timer.obj = null;
+    timer.time = null;
+  }
+}
 
 onUnmounted(() => {
   document.removeEventListener('click',dblclick)
   document.removeEventListener('keyup',keyup)
   document.removeEventListener('keydown',keydown)
-  if (timer) {
-    clearInterval(timer)
-    timer = null;
-  }
+
 })
 
 </script>
@@ -430,21 +513,21 @@ onUnmounted(() => {
                 :r="d.r"
                 :cx="d.x"
                 :cy="d.y"
-                :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"
+                :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"
         />
         <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
-              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"></rect>
+              :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"></rect>
 
         <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
-                 :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' }"
+                 :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"
         />
 
         <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
           <div class="text-editor" :contenteditable="current.id === d.id" :id="d.id"
                :style="{
-          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px', border:current.id === d.id ?'1px dashed #ccc':'unset',
+          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px', border:getSelectBorder(d),
           textAlign:'left', left:d.x - d.fontSize/2 +'px', top:d.y - d.fontSize/2 +'px', lineHeight:1.5, fontSize:d.fontSize + 'px',
-          color:d.fill,fontFamily:d.fontFamily
+          color:getSelectFill(d),fontFamily:d.fontFamily
         }"
           >{{d.text}}</div>
         </foreignObject>
@@ -456,6 +539,7 @@ onUnmounted(() => {
   <div style="position: absolute;border: 1px dashed gray;padding: 0;z-index: 1;" :style="{width:width * 20 / 24 + 'px'}">
     <canvas ref="canvasRef"  :width="width * 20 / 24" :height="height - 60"></canvas>
   </div>
+  <FlyerRight ref="flyerRightRef"></FlyerRight>
 </template>
 
 <style scoped>

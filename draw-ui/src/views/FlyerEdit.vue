@@ -1,7 +1,7 @@
 <script setup>
 import {computed, onMounted, reactive, ref} from "vue";
-import PptTools from "../components/PptTools.vue";
-import FlySvg from "../components/FlySvg.vue";
+import FlyerTools from "./FlyerTools.vue";
+import FlyerSvg from "./FlyerSvg.vue";
 const sliders = reactive([
   { width:200, height:100, stroke:"white", fill:"lightblue",image:null},
 ])
@@ -70,11 +70,11 @@ window.onresize = () => {
   <div style="width:100%;height: 100%;padding:0;background-color: #dddddd;">
   <a-row :gutter="[10,10]" style="padding: 5px;border-bottom: 1px solid #bbbbbb">
     <a-col :span="24">
-      <PptTools v-model:toolData="toolData"
+      <FlyerTools v-model:toolData="toolData"
           @drawChange="(data) => drawChange(data)"
           @clearSvg="clearSvg"
           @exportPng="exportPng"
-      ></PptTools>
+      ></FlyerTools>
     </a-col>
   </a-row>
   <a-row :gutter="[10,10]" style="padding: 5px">
@@ -91,10 +91,10 @@ window.onresize = () => {
       </svg>
     </a-col>
     <a-col :span="20" style="padding: 10px">
-      <FlySvg ref="svgEl"
+      <FlyerSvg ref="svgEl"
               :width="width" :height="height - 30"
               @changeImage="(a)=> sliders[0].image = a"
-      ></FlySvg>
+      ></FlyerSvg>
     </a-col>
   </a-row>
   </div>

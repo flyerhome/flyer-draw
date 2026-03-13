@@ -1,9 +1,9 @@
 <script setup>
-import PptEdit from './views/PptEdit.vue'
+import FlyerEdit from './views/FlyerEdit.vue'
 </script>
 
 <template>
-  <PptEdit msg="Vite + Vue" />
+  <FlyerEdit msg="Vite + Vue" />
 </template>
 
 <style scoped>
