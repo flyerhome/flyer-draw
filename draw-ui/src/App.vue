@@ -3,7 +3,7 @@ import FlyerEdit from './views/FlyerEdit.vue'
 </script>
 
 <template>
-  <FlyerEdit msg="Vite + Vue" />
+  <FlyerEdit />
 </template>
 
 <style scoped>
