@@ -3,15 +3,36 @@
     <template #extra>
       <a-button style="margin-right: 8px" @click="onClose">关闭</a-button>
     </template>
+    <a-form :label-col="{style: { width: '80px'}}">
+
+      <a-row v-if="data.selected.type === 'text'">
+        <a-col :span="24">
+          <a-form-item
+              label="文本"
+              name="text"
+          >
+            <a-textarea v-model:value="data.selected.text" style="width: 200px"></a-textarea>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    <a-row v-if="data.selected.type === 'circle' || data.selected.type === 'rect'  || data.selected.type === 'text' ">
+      <a-col :span="24">
+        <a-form-item
+            label="X"
+            name="fill"
+        >
+          <a-input type="number" v-model:value="data.selected.x" style="width: 120px"></a-input>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
     <a-row v-if="data.selected.type === 'circle' || data.selected.type === 'rect'  || data.selected.type === 'text' ">
       <a-col :span="24">
         <a-form-item
-            label="位置"
+            label="Y"
             name="fill"
         >
-          <span style="padding-right: 10px">X:</span><a-input type="number" v-model:value="data.selected.x" style="width: 120px"></a-input>
-          <span style="padding-left:10px;padding-right: 10px">Y:</span><a-input type="number" v-model:value="data.selected.y" style="width: 120px"></a-input>
+          <a-input type="number" v-model:value="data.selected.y" style="width: 120px"></a-input>
         </a-form-item>
       </a-col>
     </a-row>
@@ -89,6 +110,7 @@
         </a-form-item>
       </a-col>
     </a-row>
+    </a-form>
   </a-drawer>
 </template>
 <script setup>

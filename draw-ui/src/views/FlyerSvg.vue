@@ -1,5 +1,5 @@
 <script setup>
-import {nextTick, onMounted, onUnmounted, reactive, ref} from "vue";
+import {nextTick, onMounted, onUnmounted, reactive, ref, watch} from "vue";
 import FlyerRight from "./FlyerRight.vue";
 
 const props = defineProps({
@@ -22,39 +22,16 @@ const flyerRightRef = ref();
 const shiftFlag = ref(false)
 const ctrlFlag = ref(false)
 const altFlag = ref(false)
+const enterFlag = ref(false)
+const escFlag = ref(false)
 
 const drawList = ref([])
 const current = reactive({
   id:null,
   selected:null,
-  moving:false
+  drawing:null,
+  move:null
 })
-const getSelectStroke = (d) => {
-  /*if (current.selected && current.selected.id === d.id) {
-    return '#ff0000'
-  }*/
-  return d.stroke
-}
-const getSelectFill = (d) => {
-  return d.fill
-}
-const getSelectStrokeWidth = (d) => {
-  /*if (current.selected && current.selected.id === d.id) {
-    if (!!!d.strokeWidth) {
-      return 2;
-    }
-    if (d.strokeWidth <= 1) {
-      return 2;
-    }
-  }*/
-  return d.strokeWidth
-}
-const getSelectBorder = (d) => {
-  /*if (current.selected && current.selected.id === d.id) {
-    return '2px dashed #0ff5ed'
-  }*/
-  return current.id === d.id ?'1px dashed #ccc':'unset'
-}
 
 
 const toolUpdate = (data) => {
@@ -78,280 +55,374 @@ const toolUpdate = (data) => {
 
 const transferPoint = (str) => {
   return {
-    x:str.substring(0, str.indexOf(',')),
-    y:str.substring(str.indexOf(',') + 1),
+    x:parseFloat(str.substring(0, str.indexOf(','))),
+    y:parseFloat(str.substring(str.indexOf(',') + 1)),
   }
 }
-const drawCircle = (e, obj) => {
-  console.log("画圆了", obj)
-  const id = obj.id;
-  const exist = drawList.value.find(item => item.id === id);
-  const pt = createSVGPoint(e);
-  if (!!exist) {
-    // exist.x = obj.x
-    // exist.y = obj.y
-    // exist.r = obj.r
-    // exist.fill = obj.fill
-    // exist.stroke = obj.stroke
-    // exist.strokeWidth = obj.strokeWidth
-    const dx = pt.x - exist.x;
-    const dy = pt.y - exist.y;
-     // 勾股定理算半径
-    exist.r = Math.sqrt(dx * dx + dy * dy)
-    return exist
-  }
-  obj.type = 'circle'
-  obj.x = pt.x
-  obj.y = pt.y
-  obj.r = 0
-  obj.fill = toolData.fill||'lightblue'
-  obj.stroke = toolData.stroke||'green'
-  obj.strokeWidth = toolData.strokeWidth
-
-  drawList.value.push(obj)
-  return obj;
-}
-const drawRect = (e, obj) => {
-  console.log("画矩形了", obj)
-  const id = obj.id;
-  const exist = drawList.value.find(item => item.id === id);
-  const pt = createSVGPoint(e);
-  if (!!exist) {
-    let dx = pt.x - exist.sx;
-    let dy = pt.y - exist.sy;
-    if (dx <= 0) {
-      exist.x = pt.x
-    }
-    if (dy <= 0) {
-      exist.y = pt.y
-    }
-    exist.width = Math.abs(dx)
-    exist.height = Math.abs(dy)
-    if (!!shiftFlag.value) {
-      exist.width = exist.height = Math.min(exist.width,exist.height)
-      //重新计算x y
-      if (dx <0) {
-        exist.x = exist.sx - exist.width
-      }/* else {
-        exist.x = exist.sx + exist.width
-      }*/
-      if (dy < 0) {
-        exist.y = exist.sy - exist.height
-      }/* else {
-        exist.y = exist.sy + exist.height
-      }*/
-
-    }
-    return exist
-  }
-  obj.type = 'rect'
-  obj.width = 0
-  obj.height = 0
-  obj.sx = pt.x
-  obj.sy = pt.y
-  obj.x = pt.x
-  obj.y = pt.y
-  obj.rx = 0
-  obj.ry = 0
-  obj.fill = toolData.fill||'lightblue'
-  obj.stroke = toolData.stroke||'green'
-  obj.strokeWidth = toolData.strokeWidth
-
-  drawList.value.push(obj)
-  return obj
-}
-
-const drawPolygon = (e, obj, add) => {
-  const id = obj.id;
-  const exist = drawList.value.find(item => item.id === id);
-  const pt = createSVGPoint(e);
-  if (!!exist) {
-    // 永远更新
-    if (shiftFlag.value) {
-      // 看趋势 就是当前点位 和 上一个点位的比较
-      const last = transferPoint(exist.points[exist.points.length - 2])
-      console.log("上一个", last, "当前", pt.x,pt.y)
-      if (!!last) {
-        if (Math.abs(pt.x - last.x) > Math.abs(pt.y - last.y)) {
-          exist.points[exist.points.length - 1] = pt.x +"," + last.y
-        } else {
-          exist.points[exist.points.length - 1] = last.x +"," + pt.y
-        }
-      } else {
-        exist.points[exist.points.length - 1] = pt.x +"," + pt.y
-      }
-    } else {
-      exist.points[exist.points.length - 1] = pt.x +"," + pt.y
-    }
-    if (!!add) {
-      exist.points.push(pt.x +"," + pt.y)
-    }
-
-    return exist
-  }
-  obj.type = 'polygon'
-  obj.points = [pt.x +"," + pt.y,pt.x +"," + pt.y]
-  obj.fill = toolData.fill||'lightblue'
-  obj.stroke = toolData.stroke||'green'
-  obj.strokeWidth = toolData.strokeWidth
-
-  drawList.value.push(obj)
-  return obj;
-}
-
-const drawText = (e, obj) => {
-  console.log("画矩形了", obj)
-  const id = obj.id;
-  const exist = drawList.value.find(item => item.id === id);
-  const pt = createSVGPoint(e);
-  if (!!exist) {
-
-    return exist
-  }
-  obj.type = 'text'
-  obj.x = pt.x
-  obj.y = pt.y
-  obj.text = ''
-  obj.fontFamily = toolData.fontFamily ||"黑体"
-  obj.fontSize = toolData.fontSize ||30
-  obj.fill = toolData.fill||'lightblue'
-  obj.strokeWidth = toolData.strokeWidth
-
-  drawList.value.push(obj)
-  nextTick(() => {
-    setTimeout(()=> {
-      current.id = obj.id
-      const element = document.getElementById(obj.id);
-      element.focus()
-    },30)
-
-  })
-  return obj;
-}
-
-
-
-const mousedown = (e) => {
-  syncLeftSlider()
-  if (e.target.id && !current.id) {
-    console.log("selected===", e.target)
-    let targetId = e.target.id;
-    if (e.target.id.startsWith('F')) {
-      targetId = targetId.substring(1)
-    }
-    const selected = drawList.value.find(item => item.id === parseInt(targetId));
-    if (selected) {
-      let pt = createSVGPoint(e)
-      if (selected.points) {
-        selected.start = {
-          points:JSON.parse(JSON.stringify(selected.points)),
-        }
-      } else {
-        selected.start = {
-          x:selected.x,
-          y:selected.y
-        }
-      }
-      selected.move = {
-        x:pt.x,
-        y:pt.y
-      }
-
-      current.selected = selected;
-      current.moving = true
-      return;
-    }
-
-  }
-  current.selected = null
-  console.log("mousedown===", e.target)
-  if (!!!current.id) {
-    current.id = Date.now()
-  }
-  let obj = null;
-  if (toolData.type === 'circle')
-    obj = drawCircle(e, {id:current.id})
-  if (toolData.type === 'rect')
-    obj = drawRect(e, {id:current.id})
-  if (toolData.type === 'polygon') {
-    obj = drawPolygon(e, {id:current.id}, 1)
-  }
-  if (toolData.type === 'text') {
-    obj = drawText(e, {id:current.id})
-  }
-
-}
-const mousemove = (e) => {
-  if (!!current.selected && current.moving) {
-    // 鼠标移动当前位置 和鼠标开始的位置 的位置差就是
-    let pt = createSVGPoint(e)
-    if (current.selected.points) {
-      for (let i = 0,len = current.selected.start.points.length; i < len; i++) {
-        const point = current.selected.start.points[i];
-        const x = parseFloat(point.substring(0, point.indexOf(',')))
-        const y = parseFloat(point.substring(point.indexOf(',') + 1))
-        current.selected.points[i] = (x + pt.x - current.selected.move.x) + ',' + (y + pt.y - current.selected.move.y)
-      }
-    } else {
-      current.selected.x = current.selected.start.x + pt.x - current.selected.move.x
-      current.selected.y = current.selected.start.y + pt.y - current.selected.move.y
-    }
-
+const drawCircle = (obj) => {
+  if (obj.event === 'move') {
+    obj.x = obj.startX + obj.toX - obj.mouseStartX
+    obj.y = obj.startY + obj.toY - obj.mouseStartY
     return;
   }
-  if (!!!current.id) {
-    return
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing
+    if (exist) {
+      current.drawing = null;
+    }
   }
-  const exist = drawList.value.find(item => item.id === current.id);
-  if (toolData.type === 'circle') {
-    drawCircle(e, exist)
+
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing
+    if (!!exist) {
+      const dx = obj.moveX - exist.x;
+      const dy = obj.moveY - exist.y;
+      // 勾股定理算半径
+      exist.r = Math.sqrt(dx * dx + dy * dy)
+      return exist
+    }
   }
-  if (toolData.type === 'rect') {
-    drawRect(e, exist)
+
+  if (obj.event === 'mousedown') {
+    obj.type = 'circle'
+    obj.x = obj.startX
+    obj.y = obj.startY
+    obj.r = 0
+    obj.fill = toolData.fill||'lightblue'
+    obj.stroke = toolData.stroke||'green'
+    obj.strokeWidth = toolData.strokeWidth
+    drawList.value.push(obj)
+    return obj;
   }
-  if (toolData.type === 'polygon') {
-    drawPolygon(e, exist)
+}
+const drawRect = (obj) => {
+  if (obj.event === 'move') {
+    obj.x = obj.startX + obj.toX - obj.mouseStartX
+    obj.y = obj.startY + obj.toY - obj.mouseStartY
+    return;
   }
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+    }
+  }
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing;
+    if (!!exist) {
+      let dx = obj.moveX - exist.startX;
+      let dy = obj.moveY - exist.startY;
+      if (dx <= 0) {
+        exist.x = obj.moveX
+      }
+      if (dy <= 0) {
+        exist.y = obj.moveY
+      }
+      exist.width = Math.abs(dx)
+      exist.height = Math.abs(dy)
+      if (!!shiftFlag.value) {
+        exist.width = exist.height = Math.min(exist.width,exist.height)
+        //重新计算x y
+        if (dx <0) {
+          exist.x = exist.startX - exist.width
+        }
+        if (dy < 0) {
+          exist.y = exist.startY - exist.height
+        }
+
+      }
+      return exist
+    }
+  }
+  if (obj.event === 'mousedown') {
+    obj.type = 'rect'
+    obj.width = 0
+    obj.height = 0
+    obj.x = obj.startX
+    obj.y = obj.startY
+    obj.rx = 0
+    obj.ry = 0
+    obj.fill = toolData.fill||'lightblue'
+    obj.stroke = toolData.stroke||'green'
+    obj.strokeWidth = toolData.strokeWidth
+    drawList.value.push(obj)
+    return obj
+  }
+
+}
+
+const drawPolygon = (obj) => {
+  if (obj.event === 'end') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+      return;
+    }
+  }
+
+  if (obj.event === 'move') {
+    const points = obj.startPoints
+    if (points) {
+      console.log("正在移动", JSON.stringify(points), obj)
+      for (let i = 0, len = points.length; i < len; i++) {
+        const point = transferPoint(points[i])
+        console.log("怎么obj", point.x, obj.toX, obj.mouseStartX ,point.x + obj.toX - obj.mouseStartX, point.y + obj.toY - obj.mouseStartY)
+        obj.points[i] = (point.x + obj.toX - obj.mouseStartX) + ',' + (point.y + obj.toY - obj.mouseStartY)
+      }
+    }
+    return;
+  }
+
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing;
+    if (exist.points.length === 0) {// 第一次添加
+      exist.points.push(obj.endX +"," + obj.endY)
+      exist.points.push(obj.endX +"," + obj.endY)
+      console.log("第一次添加", JSON.stringify(exist.points))
+    } else {
+      console.log("再次添加", JSON.stringify(exist.points))
+      // 第二次添加 先修改上一个点
+      exist.points[exist.points.length - 1] = obj.endX +"," + obj.endY
+      exist.points.push(obj.endX +"," + obj.endY)
+    }
+    return exist;
+  }
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing;
+    if (exist.points.length > 0) {
+      exist.points[exist.points.length - 1] = obj.moveX +"," + obj.moveY
+      console.log("在move呀", JSON.stringify(exist.points))
+    }
+    return exist
+  }
+  if (obj.event === 'mousedown') {
+    const exist = current.drawing;
+    const filter = drawList.value.find(item => item.id === exist.id)
+    if (!filter) {
+      obj.type = 'polygon'
+      obj.points = []
+      obj.fill = toolData.fill||'lightblue'
+      obj.stroke = toolData.stroke||'green'
+      obj.strokeWidth = toolData.strokeWidth
+      drawList.value.push(obj)
+      return obj;
+    }
+  }
+}
+const endDrawPolygon = () => {
+  const exist = current.drawing;
+  if (exist && exist.type === 'polygon') {
+    if (escFlag.value) {
+      exist.event = 'end'
+      exist.points.pop();
+      drawPolygon(exist)
+    }
+    if (enterFlag.value) {
+      exist.event = 'end'
+      drawPolygon(exist)
+    }
+  }
+}
+const drawText = (obj) => {
+  if (obj.event === 'end') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+    }
+  }
+
+  if (obj.event === 'move') {
+    obj.x = obj.startX + obj.toX - obj.mouseStartX
+    obj.y = obj.startY + obj.toY - obj.mouseStartY
+    return;
+  }
+  if (obj.event === 'mouseup') {
+
+  }
+
+  if (obj.event === 'mousemove') {
+
+  }
+  if (obj.event === 'mousedown') {
+    obj.type = 'text'
+    obj.x = obj.startX
+    obj.y = obj.startY
+    obj.text = ''
+    obj.fontFamily = toolData.fontFamily ||"黑体"
+    obj.fontSize = toolData.fontSize ||30
+    obj.fill = toolData.fill||'lightblue'
+    obj.strokeWidth = toolData.strokeWidth
+
+    drawList.value.push(obj)
+    nextTick(() => {
+      setTimeout(()=> {
+        current.id = obj.id
+        const element = document.getElementById(obj.id);
+        element.focus()
+      },30)
+
+    })
+    return obj;
+  }
+}
+const endDrawText = (e) => {
+  const exist = current.drawing;
+  if (exist && exist.type === 'text') {
+    if (escFlag.value) {
+      exist.event = 'end'
+      exist.text = e.target.innerText
+      drawText(exist)
+    }
+    if (enterFlag.value) {
+      exist.event = 'end'
+      exist.text = e.target.innerText
+      drawText(exist)
+    }
+  }
+}
+const draw = (obj) => {
   syncLeftSlider()
+  switch (obj.type) {
+    case 'circle': drawCircle(obj);break;
+    case 'rect': drawRect(obj);break;
+    case 'polygon': drawPolygon(obj);break;
+    case 'text': drawText(obj);break;
+    default:
+  }
+}
+const unselect = () => {
+  if (current.selected) {
+    const selected = current.selected
+    if (selected) {
+      current.selected = null;
+    }
+  }
+}
+const selectedHanlder = (e, call) => {
+  if (e.target.id) {
+    const selected = drawList.value.find(item=> item.id === parseInt(e.target.id));
+    console.log("checkSelected", e.target, selected)
+    if (!!!selected) {
+      unselect()
+      return false;
+    }
+    if (current.selected === selected) {
+      if (!!!current.drawing) {
+        current.move = null;
+        flyerRightRef.value.show(selected)
+      }
+      return true;
+    }
+    unselect()
+    current.selected = selected;
+    return true
+  }
+  unselect()
+  return false;
+}
+const checkSelected = (e) => {
+  if (!!!current.drawing && e.target.id) {
+    const selected = drawList.value.find(item=> item.id === parseInt(e.target.id))
+    if (!!selected) {
+      current.move = selected;
+      if (selected.x) {
+        current.move.startX = selected.x
+      }
+      if (selected.y) {
+        current.move.startY = selected.y
+      }
+      const pt = createSVGPoint(e);
+      current.move.mouseStartX = pt.x
+      current.move.mouseStartY = pt.y
+      if (current.move.points) {
+        current.move.startPoints = JSON.parse(JSON.stringify(current.move.points))
+      }
+      current.move.moveFlag = false;
+      return true;
+    }
+  }
+  return false;
+}
+const mousedown = (e) => {
+  if (checkSelected(e)) {
+    return;
+  }
+  if (current.drawing) {
+    // 大部分图形不应该在进入这个事件还有绘制中的状态 除非时多边形 需要
+    return;
+  }
+  const pt = createSVGPoint(e);
+  current.drawing = {
+    id: Date.now(),
+    startX:pt.x,
+    startY:pt.y,
+    type:toolData.type,
+    event:'mousedown'
+  }
+  draw(current.drawing)
+}
+const mousemove = (e) => {
+  if (current.drawing) {
+    const pt = createSVGPoint(e);
+    current.drawing.moveX = pt.x
+    current.drawing.moveY = pt.y
+    current.drawing.event = 'mousemove'
+    draw(current.drawing)
+  }
+  if (current.move && !!!current.drawing) {
+    const pt = createSVGPoint(e);
+
+    current.move.toX = pt.x
+    current.move.toY = pt.y
+    current.move.moveFlag = true;
+    current.move.event = 'move'
+    draw(current.move);
+  }
+
 }
 
 
 const mouseup = (e) => {
-  console.log("mouseup===",e.target)
-  current.moving = false;
-
-  if (toolData.type === 'text' || toolData.type === 'polygon') {
-    // 文本和多边形 不能依靠mouseup 事件来取消绘图
-    // 文本通过ctrl+enter 取消文本编辑 keyup 事件来控制
-    // 多边形通过Enter 或esc 结束绘制  keyup 事件开控制
-    if (current.selected) {
-      flyerRightRef.value.show(current.selected)
-    }
-    return;
+  if (current.drawing) {
+    /*if (current.drawing.event === 'mousedown') {
+      drawList.value.pop();
+      current.drawing = null;
+      current.selected = null;
+    }*/
   }
-  if (current.id) {
-    const exist = drawList.value.find(item => item.id === current.id)
-    let condition = exist && exist.type === 'circle' && exist.r <= 5;
-    condition = condition || (exist && exist.type === 'rect' && (exist.width <= 5 && exist.height <= 5))
-    condition = condition || (exist  && exist.type === 'polygon' && (exist.points.length <= 2))
-    if (condition) {
-      drawList.value = drawList.value.filter(item=> item.id !== current.id)
-      current.selected =null;
-      current.id = null
+  if (!!!current.drawing) {
+    if (!!!current.move || !current.move.moveFlag) {
+      selectedHanlder(e)
       return;
     }
-    current.selected = drawList.value.find(item => item.id === current.id);
-    current.id = null
   }
-  if (current.selected) {
-    flyerRightRef.value.show(current.selected)
+  if (current.move) {
+    current.move = null;
+    return
+  }
+  if (current.drawing) {
+    const pt = createSVGPoint(e);
+    current.drawing.endX = pt.x
+    current.drawing.endY = pt.y
+    current.drawing.event = 'mouseup'
+    draw(current.drawing)
+  } else {
+    current.drawing = null;
   }
 }
+const updateText = (e) => {
+  if ((ctrlFlag.value && enterFlag.value) || escFlag.value) {
+    if (e.target.id) {
+      const exist = drawList.value.find(item => item.id === e.target.id)
+      if (exist && exist.type === 'text') {
+        console.log("更新了文本", e.target.innerText)
+        exist.text = e.target.innerText
+      }
+    }
+  }
 
-
-
-const keydown = (e) => {
-  console.log("keydown", e.key)
+}
+const noteKey = (e) => {
   if (e.key === 'Shift') {
     shiftFlag.value = true
   }
@@ -361,33 +432,15 @@ const keydown = (e) => {
   if (e.key === 'Alt') {
     altFlag.value = true
   }
-  if (e.key === 'Escape') {
+  if (e.key === 'Enter') {
+    enterFlag.value = true
   }
-
+  if (e.key === 'Escape') {
+    escFlag.value = true
+  }
 }
 
-const keyup = (e) => {
-  console.log("keyup", e.key)
-
-
-  if (e.key === 'Enter' && toolData.type === 'polygon') {
-    current.id = null;
-  }
-  if (e.key === 'Enter' && toolData.type === 'text') {
-    if (ctrlFlag.value) {
-      current.id = null;
-    }
-  }
-
-  if (e.key === 'Escape') {
-    if (!!current.id) {
-      const exist = drawList.value.find(item => item.id === current.id);
-      if (exist.type === 'polygon') {
-        exist.points.pop()
-        current.id = null;
-      }
-    }
-  }
+const unNoteKey = (e) => {
   if (e.key === 'Shift') {
     shiftFlag.value = false
   }
@@ -397,28 +450,43 @@ const keyup = (e) => {
   if (e.key === 'Alt') {
     altFlag.value = false
   }
+  if (e.key === 'Enter') {
+    enterFlag.value = false
+  }
+  if (e.key === 'Escape') {
+    escFlag.value = false
+  }
+}
+
+
+const keydown = (e) => {
+  noteKey(e)
+}
+
+const keyup = (e) => {
+  console.log("谁的keyup", e.target)
+  // 处理部分图形结束绘制事件
+  endDrawPolygon()
+  endDrawText(e)
+  unNoteKey(e)
+  syncLeftSlider()
 }
 const dblclick = (e) => {
-  if (!!!e.target.id) {
-    return false;
-  }
-  const selectedId = parseInt(e.target.id);
-  if (selectedId) {
-    const selected = drawList.value.find(item => item.id === selectedId);
-    if (selected) {
-      if (selected.type === 'text') {
-        current.id = selectedId
-        nextTick(() => {
-          e.target.focus()
-        })
-      }
-    }
-  }
+
 }
 
 document.addEventListener('dblclick', dblclick)
 document.addEventListener('keyup', keyup)
 document.addEventListener('keydown', keydown)
+
+watch(() => current.selected, (selected) => {
+  console.log("selected=====", selected)
+  if (!!selected && !!!current.drawing) {
+    current.move = null;
+    flyerRightRef.value.show(selected)
+  } else {
+  }
+})
 
 const createSVGPoint = (e) => {
   const svgPoint = svgRef.value.createSVGPoint();
@@ -454,7 +522,7 @@ const exportPng = (e) => {
 }
 defineExpose({createSVGPoint,toolUpdate})
 
-const mutationCallback = (mutationsList) => {
+const mutationCallback = () => {
   const svgString = new XMLSerializer().serializeToString(svgRef.value);
   // 2. 将SVG转为DataURL（base64）
   const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
@@ -513,21 +581,21 @@ onUnmounted(() => {
                 :r="d.r"
                 :cx="d.x"
                 :cy="d.y"
-                :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"
+                :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }"
         />
         <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
-              :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"></rect>
+              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"></rect>
 
         <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
-                 :style="{ stroke: getSelectStroke(d), strokeWidth: getSelectStrokeWidth(d), fill: getSelectFill(d), cursor: 'move' }"
+                 :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
         />
 
         <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
-          <div class="text-editor" :contenteditable="current.id === d.id" :id="d.id"
+          <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
                :style="{
-          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px', border:getSelectBorder(d),
+          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px',
           textAlign:'left', left:d.x - d.fontSize/2 +'px', top:d.y - d.fontSize/2 +'px', lineHeight:1.5, fontSize:d.fontSize + 'px',
-          color:getSelectFill(d),fontFamily:d.fontFamily
+          color:d.fill,fontFamily:d.fontFamily, opacity:(current.selected?.id === d.id ? 1 : 0.8)
         }"
           >{{d.text}}</div>
         </foreignObject>
