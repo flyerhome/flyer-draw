@@ -36,7 +36,6 @@ const current = reactive({
 
 
 const toolUpdate = (data) => {
-  console.log("tool发生了变更", data)
   toolData.type = data.type;
   toolData.fontSize = data.fontSize
   toolData.fill = data.fill
@@ -227,10 +226,8 @@ const drawPolygon = (obj) => {
   if (obj.event === 'move') {
     const points = obj.startPoints
     if (points) {
-      console.log("正在移动", JSON.stringify(points), obj)
       for (let i = 0, len = points.length; i < len; i++) {
         const point = transferPoint(points[i])
-        console.log("怎么obj", point.x, obj.toX, obj.mouseStartX ,point.x + obj.toX - obj.mouseStartX, point.y + obj.toY - obj.mouseStartY)
         obj.points[i] = (point.x + obj.toX - obj.mouseStartX) + ',' + (point.y + obj.toY - obj.mouseStartY)
       }
     }
@@ -242,9 +239,7 @@ const drawPolygon = (obj) => {
     if (exist.points.length === 0) {// 第一次添加
       exist.points.push(obj.endX +"," + obj.endY)
       exist.points.push(obj.endX +"," + obj.endY)
-      console.log("第一次添加", JSON.stringify(exist.points))
     } else {
-      console.log("再次添加", JSON.stringify(exist.points))
       // 第二次添加 先修改上一个点
       exist.points[exist.points.length - 1] = obj.endX +"," + obj.endY
       exist.points.push(obj.endX +"," + obj.endY)
@@ -255,7 +250,6 @@ const drawPolygon = (obj) => {
     const exist = current.drawing;
     if (exist.points.length > 0) {
       exist.points[exist.points.length - 1] = obj.moveX +"," + obj.moveY
-      console.log("在move呀", JSON.stringify(exist.points))
     }
     return exist
   }
@@ -366,7 +360,6 @@ const unselect = () => {
 const selectedHanlder = (e, call) => {
   if (e.target.id) {
     const selected = drawList.value.find(item=> item.id === parseInt(e.target.id));
-    console.log("checkSelected", e.target, selected)
     if (!!!selected) {
       unselect()
       return false;
@@ -480,7 +473,6 @@ const updateText = (e) => {
     if (e.target.id) {
       const exist = drawList.value.find(item => item.id === e.target.id)
       if (exist && exist.type === 'text') {
-        console.log("更新了文本", e.target.innerText)
         exist.text = e.target.innerText
       }
     }
@@ -529,7 +521,6 @@ const keydown = (e) => {
 }
 
 const keyup = (e) => {
-  console.log("谁的keyup", e.target)
   // 处理部分图形结束绘制事件
   endDrawPolygon()
   endDrawText(e)
@@ -545,7 +536,6 @@ document.addEventListener('keyup', keyup)
 document.addEventListener('keydown', keydown)
 
 watch(() => current.selected, (selected) => {
-  console.log("selected=====", selected)
   if (!!selected && !!!current.drawing) {
     current.move = null;
     flyerRightRef.value.show(selected)
@@ -605,7 +595,6 @@ const syncLeftSlider = () => {
   if (timer.obj != null) {
     //有操作了 重新计时
     timer.time = Date.now()
-    console.log("重新操作了，重新计时")
     return;
   }
   timer.time = Date.now()
@@ -614,16 +603,13 @@ const syncLeftSlider = () => {
 const clearTimer = () => {
   if (timer.obj) {
     clearInterval(timer.obj)
-    console.log("停止了同步定时器", timer.time, Date.now(), '执行了' + (Date.now() - timer.time)/1000 + 's')
     timer.obj = null;
     timer.time = null;
   }
 }
-
 onMounted(() => {
   const historyDrawStr = localStorage.getItem('historyDraw')
   if (historyDrawStr) {
-    console.log("历史保存", historyDrawStr)
     drawList.value = JSON.parse(historyDrawStr)
     nextTick(()=> {
       mutationCallback()

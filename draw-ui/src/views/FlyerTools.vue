@@ -93,6 +93,7 @@ onMounted(()=> {
       data.stroke = historyTool.stroke
       data.fontSize = historyTool.fontSize;
       data.strokeWidth = historyTool.strokeWidth;
+      emits("drawChange", data)
       return;
     }
   }
