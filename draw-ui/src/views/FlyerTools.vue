@@ -1,5 +1,29 @@
 <template>
   <a-row>
+
+    <a-col :span="4">
+      <a-form-item
+          label="画布大小"
+          name="stroke"
+      >
+        <a-input type="number" v-model:value="data.svgWidth" style="width: 80px" @change="(e) => $emit('drawChange', data)"></a-input>
+        <span> * </span>
+        <a-input type="number" v-model:value="data.svgHeight" style="width: 80px" @change="(e) => $emit('drawChange', data)"></a-input>
+        <span> px</span>
+      </a-form-item>
+    </a-col>
+    <a-col>
+      <a-checkbox v-model:checked="data.backgroundFlag" style="padding: 5px" @change="(e) => $emit('drawChange', data)"/>
+    </a-col>
+    <a-col :span="2">
+      <a-form-item
+          label="背景色"
+          name="background"
+      >
+
+        <a-input type="color" v-model:value="data.background" style="width: 80px" @change="(e) => $emit('drawChange', data)"></a-input>
+      </a-form-item>
+    </a-col>
     <a-col :span="2">
       <a-form-item
           label="形状"
@@ -46,7 +70,7 @@
         name="cc"
     >
       <a-input type="number" min="0" max="10" v-model:value="data.strokeWidth" style="width: 61px" @change="(e) => $emit('drawChange', data)"></a-input>
-        <span> px </span>
+        <span> px</span>
     </a-form-item>
     </a-col>
     <a-col :span="5">
@@ -62,7 +86,9 @@
 <script setup>
 import {onMounted, reactive, ref} from 'vue';
 const emits = defineEmits(["drawChange", 'clearSvg'])
-defineProps({
+const props = defineProps({
+  width:Number,
+  height:Number,
   toolsData:{
     type:Object,
     default:{}
@@ -76,11 +102,15 @@ const options = reactive([
   {value:'line', label:'直线'},
 ])
 const data = reactive({
-  type:'',
-  fill:'',
-  stroke:'',
-  fontSize:20,
-  strokeWidth:0,
+  type:'circle',
+  fill:'#00ff00',
+  stroke:'#0000ff',
+  fontSize:26,
+  strokeWidth:1,
+  svgWidth:1200,
+  svgHeight:1000,
+  backgroundFlag:true,
+  background:'#ffffff',
 })
 
 onMounted(()=> {
@@ -93,15 +123,23 @@ onMounted(()=> {
       data.stroke = historyTool.stroke
       data.fontSize = historyTool.fontSize;
       data.strokeWidth = historyTool.strokeWidth;
+      data.svgWidth = historyTool.svgWidth
+      data.svgHeight = historyTool.svgHeight
+      data.background = historyTool.background
+      data.backgroundFlag = historyTool.backgroundFlag
       emits("drawChange", data)
       return;
     }
   }
-  data.type = 'circle'
-  data.fill = '#00ff00'
+  // data.type = 'circle'
+  /*data.fill = '#00ff00'
   data.stroke = '#0000ff'
-  data.fontSize = 20;
-  data.strokeWidth = 0;
+  data.fontSize = 26;
+  data.strokeWidth = 1;
+  data.svgWidth = 1200
+  data.svgHeight = 1000*/
+  data.svgWidth = (props.width)
+  data.svgHeight = (props.height)
   emits("drawChange", data)
 })
 </script>

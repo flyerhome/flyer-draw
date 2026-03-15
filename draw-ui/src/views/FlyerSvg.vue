@@ -13,7 +13,11 @@ const toolData = reactive({
   stroke:'',
   strokeWidth:0,
   fontFamily:'黑体',
-  fontSize:26
+  fontSize:26,
+  svgWidth:800,
+  svgHeight:600,
+  background:'#ffffff',
+  backgroundFlag:true
 })
 const emits = defineEmits(["changeImage"])
 const svgRef = ref();
@@ -42,6 +46,10 @@ const toolUpdate = (data) => {
   toolData.stroke = data.stroke
   toolData.strokeWidth = data.strokeWidth
   toolData.fontFamily = data.fontFamily||'黑体'
+  toolData.svgWidth = data.svgWidth
+  toolData.svgHeight = data.svgHeight
+  toolData.background = data.background
+  toolData.backgroundFlag = data.backgroundFlag
   if (data.clearSvg === 1) {
     clearSvg()
     data.clearSvg = null
@@ -626,14 +634,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div style="position: absolute;border: 1px dashed gray;padding: 0;z-index: 999;" :style="{width:width * 20 / 24 + 'px'}">
-    <svg ref="svgRef" :width="width * 20 / 24" :height="height - 60"
+  <div style="position: absolute;border:2px dashed #bbb;padding: 0;z-index: 999;" :style="{width:(toolData.svgWidth|| (width * 20 / 24)) + 'px',left:toolData.svgWidth * 2/24 + 'px'}">
+    <svg ref="svgRef" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))"
          @mousedown="mousedown"
          @mouseup="mouseup"
          @mousemove="mousemove"
     >
 
-      <rect :x="0" :y="0" :width="width * 20 / 24" :height="height - 60" stroke="#666666" fill="#ffffff"></rect>
+      <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :fill="toolData.background"></rect>
 
 
       <g v-for="d in drawList">
@@ -652,7 +660,7 @@ onUnmounted(() => {
                  :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
         />
         <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth}" />
-        <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
+        <foreignObject v-if="d.type === 'text'" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :id="'B' + d.id" style="pointer-events: none">
           <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
                :style="{
           position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px',
@@ -666,8 +674,8 @@ onUnmounted(() => {
     </svg>
 
   </div>
-  <div style="position: absolute;border: 1px dashed gray;padding: 0;z-index: 1;" :style="{width:width * 20 / 24 + 'px'}">
-    <canvas ref="canvasRef"  :width="width * 20 / 24" :height="height - 60"></canvas>
+  <div style="position: absolute;padding: 0;z-index: 1;" :style="{width:(toolData.svgWidth|| (width * 20 / 24)) + 'px',left:toolData.svgWidth * 2/24 + 'px'}">
+    <canvas ref="canvasRef"  :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))"></canvas>
   </div>
   <FlyerRight ref="flyerRightRef"></FlyerRight>
 </template>

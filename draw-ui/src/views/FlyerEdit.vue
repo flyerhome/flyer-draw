@@ -60,9 +60,9 @@ onMounted(() => {
   height.value = document.body.clientHeight - 60
 })
 window.onresize = () => {
-  console.log("resize................")
   width.value = document.body.clientWidth - 60
   height.value = document.body.clientHeight - 60
+  console.log("resize................", width.value, height.value)
 }
 </script>
 
@@ -70,7 +70,7 @@ window.onresize = () => {
   <div style="width:100%;height: 100%;padding:0;background-color: #dddddd;">
   <a-row :gutter="[10,10]" style="padding: 5px;border-bottom: 1px solid #bbbbbb">
     <a-col :span="24">
-      <FlyerTools v-model:toolData="toolData"
+      <FlyerTools  :width="parseInt(width*16/(24))" :height="parseInt(height * 19/24)" v-model:toolData="toolData"
           @drawChange="(data) => drawChange(data)"
           @clearSvg="clearSvg"
           @exportPng="exportPng"
@@ -85,14 +85,13 @@ window.onresize = () => {
         <image v-for="(slider,index) in sliders"
                :x="20" :y="slider.height * (index) + 10 * index"
                :width="slider.width" :height="slider.height"
-               :href="slider.image || ''" title="网络图片"
+               :href="slider.image || ''"
         />
 
       </svg>
     </a-col>
     <a-col :span="20" style="padding: 10px">
       <FlyerSvg ref="svgEl"
-              :width="width" :height="height - 30"
               @changeImage="(a)=> sliders[0].image = a"
       ></FlyerSvg>
     </a-col>
