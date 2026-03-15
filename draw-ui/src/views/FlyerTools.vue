@@ -11,7 +11,7 @@
           style="width: 90px"
           placeholder="选择形状"
           :options="options"
-          @change="(e) => $emit('drawChange', data)"
+          @change="(e) => {$emit('drawChange', data);if (data.type === 'line') {if (data.strokeWidth === 0) {data.strokeWidth = 1}}}"
       ></a-select>
       </a-form-item>
     </a-col>
@@ -49,7 +49,11 @@
         <span> px </span>
     </a-form-item>
     </a-col>
-    <a-col :span="3"><a-button @click="(e) => {data.clearSvg = 1;$emit('drawChange', data)}">清空画布</a-button> <a-button @click="(e) => {data.exportPng = 1;$emit('drawChange', data)}">导出PNG</a-button></a-col>
+    <a-col :span="5">
+      <a-button @click="(e) => {data.saveDraw = 1;$emit('drawChange', data)}">暂存</a-button>
+      <a-button @click="(e) => {data.clearSvg = 1;$emit('drawChange', data)}">清空画布</a-button>
+      <a-button @click="(e) => {data.exportPng = 1;$emit('drawChange', data)}">导出PNG</a-button>
+    </a-col>
   </a-row>
 
 
@@ -69,6 +73,7 @@ const options = reactive([
   {value:'rect', label:'矩形'},
   {value:'polygon', label:'多边形'},
   {value:'text', label:'文本'},
+  {value:'line', label:'直线'},
 ])
 const data = reactive({
   type:'',
@@ -79,6 +84,18 @@ const data = reactive({
 })
 
 onMounted(()=> {
+  const historyToolStr = localStorage.getItem('historyTool')
+  if (historyToolStr) {
+    const historyTool = JSON.parse(historyToolStr)
+    if (historyTool) {
+      data.type = historyTool.type
+      data.fill = historyTool.fill
+      data.stroke = historyTool.stroke
+      data.fontSize = historyTool.fontSize;
+      data.strokeWidth = historyTool.strokeWidth;
+      return;
+    }
+  }
   data.type = 'circle'
   data.fill = '#00ff00'
   data.stroke = '#0000ff'

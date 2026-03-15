@@ -1,6 +1,7 @@
 <script setup>
 import {nextTick, onMounted, onUnmounted, reactive, ref, watch} from "vue";
 import FlyerRight from "./FlyerRight.vue";
+import {message} from "ant-design-vue";
 
 const props = defineProps({
   width:Number,
@@ -45,10 +46,18 @@ const toolUpdate = (data) => {
   if (data.clearSvg === 1) {
     clearSvg()
     data.clearSvg = null
+    data.clearSvg = 0
   }
   if (data.exportPng === 1) {
     exportPng()
     data.exportPng = null;
+    data.exportPng = 0
+  }
+  if (data.saveDraw === 1) {
+    localStorage.setItem("historyDraw", JSON.stringify(drawList.value))
+    localStorage.setItem("historyTool", JSON.stringify(toolData))
+    message.success('暂存成功')
+    data.saveDraw = 0;
   }
 }
 
@@ -150,7 +159,62 @@ const drawRect = (obj) => {
   }
 
 }
+const drawLine = (obj) => {
+  if (obj.event === 'end') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+      return;
+    }
+  }
 
+  if (obj.event === 'move') {
+
+    return;
+  }
+
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing;
+    obj.hide = false;
+    if (!obj.x1 || !obj.y1) {
+      obj.x1 = obj.endX
+      obj.y1 = obj.endY
+    } else {
+      obj.x2 = obj.endX
+      obj.y2 = obj.endY
+      current.drawing = null;
+    }
+    return exist;
+  }
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing;
+    if (exist) {
+      obj.x2 = obj.moveX
+      obj.y2 = obj.moveY
+    }
+    return exist
+  }
+  if (obj.event === 'mousedown') {
+    const exist = current.drawing;
+    const filter = drawList.value.find(item => item.id === exist.id)
+    if (!filter) {
+      obj.type = 'line'
+      obj.hide = true;
+      // obj.x1 = obj.startX
+      // obj.y1 = obj.startY
+      //
+      // obj.x2 = obj.startX
+      // obj.y2 = obj.startY
+      obj.fill = toolData.fill||'lightblue'
+      obj.stroke = toolData.stroke||'green'
+      obj.strokeWidth = toolData.strokeWidth
+      drawList.value.push(obj)
+      return obj;
+    } else {
+
+    }
+  }
+}
 const drawPolygon = (obj) => {
   if (obj.event === 'end') {
     const exist = current.drawing;
@@ -287,6 +351,7 @@ const draw = (obj) => {
     case 'rect': drawRect(obj);break;
     case 'polygon': drawPolygon(obj);break;
     case 'text': drawText(obj);break;
+    case 'line': drawLine(obj);break;
     default:
   }
 }
@@ -496,6 +561,7 @@ const createSVGPoint = (e) => {
 }
 const clearSvg = (e) => {
   drawList.value = []
+  mutationCallback()
 }
 const exportPng = (e) => {
   const svgString = new XMLSerializer().serializeToString(svgRef.value);
@@ -554,6 +620,16 @@ const clearTimer = () => {
   }
 }
 
+onMounted(() => {
+  const historyDrawStr = localStorage.getItem('historyDraw')
+  if (historyDrawStr) {
+    console.log("历史保存", historyDrawStr)
+    drawList.value = JSON.parse(historyDrawStr)
+    nextTick(()=> {
+      mutationCallback()
+    })
+  }
+})
 onUnmounted(() => {
   document.removeEventListener('click',dblclick)
   document.removeEventListener('keyup',keyup)
@@ -589,7 +665,7 @@ onUnmounted(() => {
         <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
                  :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
         />
-
+        <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth}" />
         <foreignObject v-if="d.type === 'text'" :width="width * 20 / 24" :height="height - 60" :id="'B' + d.id" style="pointer-events: none">
           <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
                :style="{
