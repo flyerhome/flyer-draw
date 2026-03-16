@@ -334,6 +334,7 @@ const drawPolyline = (obj) => {
     const filter = drawList.value.find(item => item.id === exist.id)
     if (!filter) {
       obj.type = 'polyline'
+      obj.points = []
       obj.fill = toolData.fill||'lightblue'
       obj.stroke = toolData.stroke||'green'
       obj.strokeWidth = toolData.strokeWidth
@@ -405,6 +406,7 @@ const drawPolygon = (obj) => {
     const filter = drawList.value.find(item => item.id === exist.id)
     if (!filter) {
       obj.type = 'polygon'
+      obj.points = []
       obj.fill = toolData.fill||'lightblue'
       obj.stroke = toolData.stroke||'green'
       obj.strokeWidth = toolData.strokeWidth
