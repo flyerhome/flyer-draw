@@ -166,6 +166,69 @@ const drawRect = (obj) => {
   }
 
 }
+
+const drawEllipse = (obj) => {
+  if (obj.event === 'end') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+      return;
+    }
+  }
+
+  if (obj.event === 'move') {
+    obj.x = obj.startX + obj.toX - obj.mouseStartX
+    obj.y = obj.startY + obj.toY - obj.mouseStartY
+    return;
+  }
+
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing;
+    obj.hide = false;
+    if (!obj.x || !obj.y) {
+      obj.x = obj.endX
+      obj.y = obj.endY
+    } else {
+      // 计算 rx ry
+      obj.rx = Math.abs(obj.endX - obj.x)
+      obj.ry = Math.abs(obj.endY - obj.y)
+      if (shiftFlag.value) {
+        obj.rx = obj.ry = Math.min(obj.rx, obj.ry)
+      }
+      current.drawing = null;
+    }
+    return exist;
+  }
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing;
+    if (exist) {
+      if (!!exist.x && !!exist.y) {
+        // 计算 rx ry
+        obj.rx = Math.abs(obj.moveX - obj.x)
+        obj.ry = Math.abs(obj.moveY - obj.y)
+        if (shiftFlag.value) {
+          obj.rx = obj.ry = Math.min(obj.rx, obj.ry)
+        }
+      }
+    }
+    return exist
+  }
+  if (obj.event === 'mousedown') {
+    const exist = current.drawing;
+    const filter = drawList.value.find(item => item.id === exist.id)
+    if (!filter) {
+      obj.type = 'ellipse'
+      obj.fill = toolData.fill||'lightblue'
+      obj.stroke = toolData.stroke||'green'
+      obj.strokeWidth = toolData.strokeWidth
+      drawList.value.push(obj)
+      return obj;
+    } else {
+
+    }
+  }
+}
+
 const drawLine = (obj) => {
   if (obj.event === 'end') {
     const exist = current.drawing;
@@ -176,7 +239,10 @@ const drawLine = (obj) => {
   }
 
   if (obj.event === 'move') {
-
+    obj.x1 = obj.startX1 + obj.toX - obj.mouseStartX
+    obj.y1 = obj.startY1 + obj.toY - obj.mouseStartY
+    obj.x2 = obj.startX2 + obj.toX - obj.mouseStartX
+    obj.y2 = obj.startY2 + obj.toY - obj.mouseStartY
     return;
   }
 
@@ -222,6 +288,78 @@ const drawLine = (obj) => {
     }
   }
 }
+
+const drawPolyline = (obj) => {
+  if (obj.event === 'end') {
+    const exist = current.drawing;
+    if (exist) {
+      current.drawing = null;
+      return;
+    }
+  }
+
+  if (obj.event === 'move') {
+    const points = obj.startPoints
+    if (points) {
+      for (let i = 0, len = points.length; i < len; i++) {
+        const point = transferPoint(points[i])
+        obj.points[i] = (point.x + obj.toX - obj.mouseStartX) + ',' + (point.y + obj.toY - obj.mouseStartY)
+      }
+    }
+    return;
+  }
+
+  if (obj.event === 'mouseup') {
+    const exist = current.drawing;
+    if (exist) {
+      if (!obj.points) {
+        obj.points = []
+      }
+      obj.points.push(obj.endX + ',' + obj.endY)
+      obj.points.push(obj.endX + ',' + obj.endY)
+    }
+    return;
+  }
+  if (obj.event === 'mousemove') {
+    const exist = current.drawing;
+    if (exist) {
+      if (!!obj.points) {
+        obj.points[obj.points.length - 1] = obj.moveX + ',' + obj.moveY
+      }
+    }
+    return exist
+  }
+  if (obj.event === 'mousedown') {
+    const exist = current.drawing;
+    const filter = drawList.value.find(item => item.id === exist.id)
+    if (!filter) {
+      obj.type = 'polyline'
+      obj.fill = toolData.fill||'lightblue'
+      obj.stroke = toolData.stroke||'green'
+      obj.strokeWidth = toolData.strokeWidth
+      drawList.value.push(obj)
+      return obj;
+    } else {
+
+    }
+  }
+}
+
+const endDrawPolyLine = () => {
+  const exist = current.drawing;
+  if (exist && exist.type === 'polyline') {
+    if (escFlag.value) {
+      exist.event = 'end'
+      exist.points.pop();
+      drawPolyline(exist)
+    }
+    if (enterFlag.value) {
+      exist.event = 'end'
+      drawPolyline(exist)
+    }
+  }
+}
+
 const drawPolygon = (obj) => {
   if (obj.event === 'end') {
     const exist = current.drawing;
@@ -244,20 +382,21 @@ const drawPolygon = (obj) => {
 
   if (obj.event === 'mouseup') {
     const exist = current.drawing;
-    if (exist.points.length === 0) {// 第一次添加
-      exist.points.push(obj.endX +"," + obj.endY)
-      exist.points.push(obj.endX +"," + obj.endY)
-    } else {
-      // 第二次添加 先修改上一个点
-      exist.points[exist.points.length - 1] = obj.endX +"," + obj.endY
-      exist.points.push(obj.endX +"," + obj.endY)
+    if (exist) {
+      if (!obj.points) {
+        obj.points = []
+      }
+      obj.points.push(obj.endX + ',' + obj.endY)
+      obj.points.push(obj.endX + ',' + obj.endY)
     }
-    return exist;
+    return;
   }
   if (obj.event === 'mousemove') {
     const exist = current.drawing;
-    if (exist.points.length > 0) {
-      exist.points[exist.points.length - 1] = obj.moveX +"," + obj.moveY
+    if (exist) {
+      if (!!obj.points) {
+        obj.points[obj.points.length - 1] = obj.moveX + ',' + obj.moveY
+      }
     }
     return exist
   }
@@ -266,7 +405,6 @@ const drawPolygon = (obj) => {
     const filter = drawList.value.find(item => item.id === exist.id)
     if (!filter) {
       obj.type = 'polygon'
-      obj.points = []
       obj.fill = toolData.fill||'lightblue'
       obj.stroke = toolData.stroke||'green'
       obj.strokeWidth = toolData.strokeWidth
@@ -352,8 +490,10 @@ const draw = (obj) => {
     case 'circle': drawCircle(obj);break;
     case 'rect': drawRect(obj);break;
     case 'polygon': drawPolygon(obj);break;
+    case 'polyline': drawPolyline(obj);break;
     case 'text': drawText(obj);break;
     case 'line': drawLine(obj);break;
+    case 'ellipse': drawEllipse(obj);break;
     default:
   }
 }
@@ -396,6 +536,18 @@ const checkSelected = (e) => {
       }
       if (selected.y) {
         current.move.startY = selected.y
+      }
+      if (selected.x1) {
+        current.move.startX1 = selected.x1
+      }
+      if (selected.y1) {
+        current.move.startY1 = selected.y1
+      }
+      if (selected.x2) {
+        current.move.startX2 = selected.x2
+      }
+      if (selected.y1) {
+        current.move.startY2 = selected.y2
       }
       const pt = createSVGPoint(e);
       current.move.mouseStartX = pt.x
@@ -531,6 +683,7 @@ const keydown = (e) => {
 const keyup = (e) => {
   // 处理部分图形结束绘制事件
   endDrawPolygon()
+  endDrawPolyLine()
   endDrawText(e)
   unNoteKey(e)
   syncLeftSlider()
@@ -653,13 +806,29 @@ onUnmounted(() => {
                 :cy="d.y"
                 :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }"
         />
+
+        <ellipse
+            v-if="d.type === 'ellipse'"
+            :id="d.id"
+            :key="d.id"
+            :rx="d.rx"
+            :ry="d.ry"
+            :cx="d.x"
+            :cy="d.y"
+            :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }" />
+
         <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
               :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"></rect>
 
         <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
                  :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
         />
-        <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth}" />
+
+        <polyline
+            :id="d.id" v-if="d.type === 'polyline'" :points="d.points.join(' ')"
+            :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: 'none', cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}" />
+
+        <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth,cursor: 'move' }" />
         <foreignObject v-if="d.type === 'text'" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :id="'B' + d.id" style="pointer-events: none">
           <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
                :style="{

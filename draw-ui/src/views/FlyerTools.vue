@@ -96,10 +96,12 @@ const props = defineProps({
 })
 const options = reactive([
   {value:'circle', label:'圆'},
+  {value:'ellipse', label:'椭圆'},
   {value:'rect', label:'矩形'},
+  {value:'line', label:'直线'},
+  {value:'polyline', label:'折线'},
   {value:'polygon', label:'多边形'},
   {value:'text', label:'文本'},
-  {value:'line', label:'直线'},
 ])
 const data = reactive({
   type:'circle',
