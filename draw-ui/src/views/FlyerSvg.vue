@@ -21,6 +21,7 @@ const toolData = reactive({
 })
 const emits = defineEmits(["changeImage"])
 const svgRef = ref();
+const bodyRef = ref();
 const canvasRef = ref();
 const flyerRightRef = ref();
 
@@ -721,12 +722,13 @@ const exportPng = (e) => {
   const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
   const svgUrl = URL.createObjectURL(svgBlob);
 
-  const image = new Image(props.width * 20 / 24,props.height - 60)
+  const image = new Image()
   image.src = svgUrl
   image.crossOrigin = 'anonymous'; // 解决跨域渲染问题;
   image.onload = (e) => {
     const canvas = canvasRef.value
     const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width, canvas.height)
     ctx.drawImage(image, 0, 0);
     const pngUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
@@ -738,7 +740,10 @@ const exportPng = (e) => {
     // 清理临时资源
     URL.revokeObjectURL(svgUrl);
   }
+
 }
+
+
 defineExpose({createSVGPoint,toolUpdate})
 
 const mutationCallback = () => {
@@ -789,64 +794,73 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div style="position: absolute;border:2px dashed #bbb;padding: 0;z-index: 999;" :style="{width:(toolData.svgWidth|| (width * 20 / 24)) + 'px',left:toolData.svgWidth * 2/24 + 'px'}">
-    <svg ref="svgRef" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))"
-         @mousedown="mousedown"
-         @mouseup="mouseup"
-         @mousemove="mousemove"
-    >
+  <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;/* 核心居中样式 */
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center;     /* 垂直居中 */">
+    <div  style="position: relative;padding: 0;border:1px solid #333;/* 核心居中样式 */
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center;     /* 垂直居中 */" :style="{width:toolData.svgWidth+ 'px', height:toolData.svgHeight + 'px'}">
+      <svg ref="svgRef" :style="{width:'100%', height:'100%'}"
+           @mousedown="mousedown"
+           @mouseup="mouseup"
+           @mousemove="mousemove"
+      >
 
-      <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :fill="toolData.background"></rect>
+        <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" :fill="toolData.background"></rect>
 
 
-      <g v-for="d in drawList">
-        <circle v-if="d.type === 'circle'"
-                :id="d.id"
-                :key="d.id"
-                :r="d.r"
-                :cx="d.x"
-                :cy="d.y"
-                :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }"
-        />
+        <g v-for="d in drawList">
+          <circle v-if="d.type === 'circle'"
+                  :id="d.id"
+                  :key="d.id"
+                  :r="d.r"
+                  :cx="d.x"
+                  :cy="d.y"
+                  :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }"
+          />
 
-        <ellipse
-            v-if="d.type === 'ellipse'"
-            :id="d.id"
-            :key="d.id"
-            :rx="d.rx"
-            :ry="d.ry"
-            :cx="d.x"
-            :cy="d.y"
-            :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }" />
+          <ellipse
+              v-if="d.type === 'ellipse'"
+              :id="d.id"
+              :key="d.id"
+              :rx="d.rx"
+              :ry="d.ry"
+              :cx="d.x"
+              :cy="d.y"
+              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move', opacity:(current.selected?.id === d.id ? 1 : 0.8) }" />
 
-        <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
-              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"></rect>
+          <rect :id="d.id" v-if="d.type === 'rect'" :width="d.width" :height="d.height" :x="d.x" :y="d.y" :rx="d.rx" :ry="d.ry"
+                :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"></rect>
 
-        <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
-                 :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
-        />
+          <polygon :id="d.id" v-if="d.type === 'polygon'" :points="d.points.join(' ')"
+                   :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: d.fill, cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}"
+          />
 
-        <polyline
-            :id="d.id" v-if="d.type === 'polyline'" :points="d.points.join(' ')"
-            :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: 'none', cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}" />
+          <polyline
+              :id="d.id" v-if="d.type === 'polyline'" :points="d.points.join(' ')"
+              :style="{ stroke: d.stroke, strokeWidth: d.strokeWidth, fill: 'none', cursor: 'move' , opacity:(current.selected?.id === d.id ? 1 : 0.8)}" />
 
-        <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth,cursor: 'move' }" />
-        <foreignObject v-if="d.type === 'text'" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :id="'B' + d.id" style="pointer-events: none">
-          <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
-               :style="{
-          position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px',
-          textAlign:'left', left:d.x - d.fontSize/2 +'px', top:d.y - d.fontSize/2 +'px', lineHeight:1.5, fontSize:d.fontSize + 'px',
-          color:d.fill,fontFamily:d.fontFamily, opacity:(current.selected?.id === d.id ? 1 : 0.8)
-        }"
-          >{{d.text}}</div>
-        </foreignObject>
-      </g>
+          <line :id="d.id" v-if="d.type === 'line' && !d.hide" :x1="d.x1" :y1="d.y1" :x2="d.x2||d.x1" :y2="d.y2||d.y1" :style="{stroke:d.stroke,strokeWidth:d.strokeWidth,cursor: 'move' }" />
+          <foreignObject v-if="d.type === 'text'" :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))" :id="'B' + d.id" style="pointer-events: none">
+            <div class="text-editor" :contenteditable="current.drawing?.id === d.id" :id="d.id"
+                 :style="{
+            position:'absolute',pointerEvents: 'auto', userSelect:'none',cursor: 'move',padding:'5px',minWidth:'5px',
+            textAlign:'left', left:d.x - d.fontSize/2 +'px', top:d.y - d.fontSize/2 +'px', lineHeight:1.5, fontSize:d.fontSize + 'px',
+            color:d.fill,fontFamily:d.fontFamily, opacity:(current.selected?.id === d.id ? 1 : 0.8)
+          }"
+            >{{d.text}}</div>
+          </foreignObject>
+        </g>
 
-    </svg>
+      </svg>
 
-  </div>
-  <div style="position: absolute;padding: 0;z-index: 1;" :style="{width:(toolData.svgWidth|| (width * 20 / 24)) + 'px',left:toolData.svgWidth * 2/24 + 'px'}">
-    <canvas ref="canvasRef"  :width="(toolData.svgWidth|| (width * 20 / 24))" :height="(toolData.svgHeight|| (height - 60))"></canvas>
+
+    </div>
+    <div style="display: none;border:1px solid #fff;" :style="{width:toolData.svgWidth + 'px', height:toolData.svgHeight + 'px'}">
+      <canvas ref="canvasRef" :width="toolData.svgWidth" :height="toolData.svgHeight"></canvas>
+    </div>
   </div>
   <FlyerRight ref="flyerRightRef"></FlyerRight>
 </template>

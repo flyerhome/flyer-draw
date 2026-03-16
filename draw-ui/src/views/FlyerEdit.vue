@@ -3,7 +3,7 @@ import {computed, onMounted, reactive, ref} from "vue";
 import FlyerTools from "./FlyerTools.vue";
 import FlyerSvg from "./FlyerSvg.vue";
 const sliders = reactive([
-  { width:200, height:100, stroke:"white", fill:"lightblue",image:null},
+  { width:200, height:200, stroke:"white", fill:"lightblue",image:null},
 ])
 const contextMenu = ref({
   show: false,    // 是否显示菜单
@@ -78,7 +78,7 @@ window.onresize = () => {
     </a-col>
   </a-row>
   <a-row :gutter="[10,10]" style="padding: 5px">
-    <a-col :span="4" style="border-right:1px solid #bbbbbb;">
+<!--    <a-col :span="4" style="border-right:1px solid #bbbbbb;">
       <svg :width="width * 4 / 24" :height="height - 60">
         <text v-for="(slider,index) in sliders"  :x="0" :y="slider.height * (index+0.2) + 10 * index" fill="#666666" >{{index + 1}} </text>
         <rect v-for="(slider,index) in sliders" :x="20" :y="slider.height * (index) + 10 * index" :width="slider.width" :height="slider.height" :stroke="slider.stroke" :fill="slider.fill"></rect>
@@ -89,8 +89,8 @@ window.onresize = () => {
         />
 
       </svg>
-    </a-col>
-    <a-col :span="20" style="padding: 10px">
+    </a-col>-->
+    <a-col :span="24" style="padding: 10px">
       <FlyerSvg ref="svgEl"
               @changeImage="(a)=> sliders[0].image = a"
       ></FlyerSvg>
