@@ -13,6 +13,8 @@ const toolData = reactive({
   aiUrl:'',
   apiId:'',
   apiKey:'',
+  backgroundFlag:true,
+  background:'#fff'
 })
 const width = ref(2000)
 const height = ref(1000)
@@ -55,7 +57,11 @@ const aiDraw = async (e) => {
 
     if (response.status === 200) {
       console.log(`${response.data.output.text}`);
-      svgEl.value.innerHTML = '<rect x="0" y="0" width="' +toolData.svgWidth+ '" height="' + toolData.svgHeight + '" fill="white"></rect>'
+      if (toolData.backgroundFlag) {
+        svgEl.value.innerHTML = '<rect x="0" y="0" width="' +toolData.svgWidth+ '" height="' + toolData.svgHeight + '" fill="' + toolData.background + '"></rect>'
+      } else {
+        svgEl.value.innerHTML = ''
+      }
       svgEl.value.innerHTML += `${response.data.output.text}`
       message.success('已绘制完成')
       loading()
@@ -188,12 +194,25 @@ window.onresize = () => {
             <span> px</span>
           </a-form-item>
         </a-col>
-        <a-col :span="20">
+        <a-col>
+          <a-checkbox v-model:checked="toolData.backgroundFlag" style="padding: 5px"/>
+        </a-col>
+        <a-col :span="2">
+          <a-form-item
+              label="背景色"
+              name="background"
+          >
+
+            <a-input type="color" v-model:value="toolData.background" style="width: 80px"></a-input>
+          </a-form-item>
+        </a-col>
+
+        <a-col :span="16">
           <a-form-item
               label=""
               name="aiContent"
           >
-            <a-textarea v-model:value="toolData.aiContent" style="width: calc(100% - 500px);margin-right: 10px;" placeholder="请输入需要绘制图形的关键信息"></a-textarea>
+            <a-textarea v-model:value="toolData.aiContent" style="width: calc(100% - 500px);margin-right: 10px;" placeholder="请输入需要绘制图形的详细信息，如绘制一个迷宫，有一个小人在迷宫里从入口走到出口"></a-textarea>
 
             <a-button @click="aiDraw">开始AI绘制</a-button>
             <a-button @click="exportPng">导出PNG</a-button>
@@ -208,7 +227,7 @@ window.onresize = () => {
         <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;display: flex;justify-content: center;align-items: center;flex-direction: column">
           <div style="position: relative;padding: 0;background: rgba(204,198,198,0.47);" :style="{width:toolData.svgWidth + 'px', height:toolData.svgHeight + 'px'}">
             <svg ref="svgEl" :style="{width:'100%', height:'100%'}">
-              <rect :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" fill="white"></rect>
+              <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" :fill="toolData.background"></rect>
             </svg>
           </div>
         </div>
