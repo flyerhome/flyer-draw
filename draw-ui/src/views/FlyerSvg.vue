@@ -794,14 +794,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;/* 核心居中样式 */
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center;     /* 垂直居中 */">
-    <div  style="position: relative;padding: 0;border:1px solid #333;/* 核心居中样式 */
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center;     /* 垂直居中 */" :style="{width:toolData.svgWidth+ 'px', height:toolData.svgHeight + 'px'}">
+  <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;display: flex;justify-content: center;align-items: center;">
+    <div style="position: relative;padding: 0;background: rgba(204,198,198,0.47);" :style="{width:toolData.svgWidth+ 'px', height:toolData.svgHeight + 'px'}">
       <svg ref="svgRef" :style="{width:'100%', height:'100%'}"
            @mousedown="mousedown"
            @mouseup="mouseup"

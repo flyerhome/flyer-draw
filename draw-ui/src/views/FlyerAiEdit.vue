@@ -55,7 +55,7 @@ const aiDraw = async (e) => {
 
     if (response.status === 200) {
       console.log(`${response.data.output.text}`);
-      svgEl.value.innerHTML = '<rect x="0" y="0" width="' +toolData.svgWidth+ '" height="' + toolData.svgHeight + '" fill="gray"></rect>'
+      svgEl.value.innerHTML = '<rect x="0" y="0" width="' +toolData.svgWidth+ '" height="' + toolData.svgHeight + '" fill="white"></rect>'
       svgEl.value.innerHTML += `${response.data.output.text}`
       message.success('已绘制完成')
       loading()
@@ -78,7 +78,38 @@ const aiDraw = async (e) => {
 
 }
 
+const exportPng = (e) => {
+  const svgString = new XMLSerializer().serializeToString(svgEl.value);
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
 
+  const image = new Image()
+  image.src = svgUrl
+  image.crossOrigin = 'anonymous'; // 解决跨域渲染问题;
+  image.onload = (e) => {
+    let canvas = document.createElement('canvas')
+    canvas.width = toolData.svgWidth
+    canvas.height = toolData.svgHeight
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width, canvas.height)
+    ctx.drawImage(image, 0, 0);
+    const pngUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = pngUrl;
+    a.download = 'flyerDraw.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 清理临时资源
+    URL.revokeObjectURL(svgUrl);
+    ctx.clearRect(0,0,canvas.width, canvas.height)
+    canvas.getContext = () => null;
+    canvas.width = 0
+    canvas.height = 0
+    canvas = null;
+  }
+
+}
 
 onMounted(() => {
   width.value = document.body.clientWidth
@@ -113,65 +144,71 @@ window.onresize = () => {
 <template>
   <div style="width:100%;height: 100%;padding:0;background-color: #dddddd;">
 
-    <a-row :gutter="[10,10]" style="padding: 5px;border-bottom: 1px solid #bbbbbb">
-      <a-col :span="24">
-        <a-row>
-          <a-col :span="7">
-            <a-form-item
-                label="AI智能体地址"
-                name="url"
-            >
-              <a-input type="text" style="width: 450px" v-model:value="toolData.aiUrl"></a-input>
-            </a-form-item>
-          </a-col>
-          <a-col :span="4">
-            <a-form-item
-                label="ApiId"
-                name="apiId"
-            >
-              <a-input type="text" style="width: 250px" v-model:value="toolData.apiId"></a-input>
-            </a-form-item>
-          </a-col>
-          <a-col :span="4">
-            <a-form-item
-                label="ApiKey"
-                name="apiKey"
-            >
-              <a-input type="text" style="width: 250px" v-model:value="toolData.apiKey"></a-input>
-            </a-form-item>
-          </a-col>
-          <a-col :span="4">
-              <a-button @click="saveAiConfig">本地缓存</a-button>
-              <a-button @click="clearAiConfig(1)">清除本地缓存</a-button>
-              <a-button @click="clearAiConfig(0)">清空重录</a-button>
-          </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="23">
-            <a-form-item
-                label=""
-                name="aiContent"
-            >
-              <a-textarea v-model:value="toolData.aiContent" style="width: calc(100% - 120px);margin-right: 10px;" placeholder="请输入需要绘制图形的关键信息"></a-textarea>
+    <div  style="padding: 5px;border-bottom: 1px solid #bbbbbb">
+      <a-row>
+        <a-col :span="7">
+          <a-form-item
+              label="AI智能体地址"
+              name="url"
+          >
+            <a-input type="text" style="width: 450px" v-model:value="toolData.aiUrl"></a-input>
+          </a-form-item>
+        </a-col>
+        <a-col :span="4">
+          <a-form-item
+              label="ApiId"
+              name="apiId"
+          >
+            <a-input type="text" style="width: 250px" v-model:value="toolData.apiId"></a-input>
+          </a-form-item>
+        </a-col>
+        <a-col :span="4">
+          <a-form-item
+              label="ApiKey"
+              name="apiKey"
+          >
+            <a-input type="text" style="width: 250px" v-model:value="toolData.apiKey"></a-input>
+          </a-form-item>
+        </a-col>
+        <a-col :span="4">
+          <a-button @click="saveAiConfig">本地缓存</a-button>
+          <a-button @click="clearAiConfig(1)">清除本地缓存</a-button>
+          <a-button @click="clearAiConfig(0)">清空重录</a-button>
+        </a-col>
+      </a-row>
+      <a-row>
+        <a-col :span="4">
+          <a-form-item
+              label="画布大小"
+              name="svgWH"
+          >
+            <a-input type="number" v-model:value="toolData.svgWidth" style="width: 80px"></a-input>
+            <span> * </span>
+            <a-input type="number" v-model:value="toolData.svgHeight" style="width: 80px"></a-input>
+            <span> px</span>
+          </a-form-item>
+        </a-col>
+        <a-col :span="20">
+          <a-form-item
+              label=""
+              name="aiContent"
+          >
+            <a-textarea v-model:value="toolData.aiContent" style="width: calc(100% - 500px);margin-right: 10px;" placeholder="请输入需要绘制图形的关键信息"></a-textarea>
 
-              <a-button @click="aiDraw">开始AI绘制</a-button>
-            </a-form-item>
-          </a-col>
-        </a-row>
-      </a-col>
-    </a-row>
+            <a-button @click="aiDraw">开始AI绘制</a-button>
+            <a-button @click="exportPng">导出PNG</a-button>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </div>
+
     <a-row :gutter="[10,10]" style="padding: 5px">
       <a-col :span="24" style="padding: 10px">
-        <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;/* 核心居中样式 */
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center;     /* 垂直居中 */">
-          <div  style="position: relative;padding: 0;border:1px solid #333;background: white;/* 核心居中样式 */
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center;     /* 垂直居中 */" :style="{width:toolData.svgWidth + 'px', height:toolData.svgHeight + 'px'}">
+
+        <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;display: flex;justify-content: center;align-items: center;flex-direction: column">
+          <div style="position: relative;padding: 0;background: rgba(204,198,198,0.47);" :style="{width:toolData.svgWidth + 'px', height:toolData.svgHeight + 'px'}">
             <svg ref="svgEl" :style="{width:'100%', height:'100%'}">
-<!--              <rect :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" fill="white"></rect>-->
+              <rect :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" fill="white"></rect>
             </svg>
           </div>
         </div>
