@@ -16,7 +16,9 @@
    * Axios 1.13+
 
 2. 后端架构
-   * 待定
+   * Python
+     * fastapi
+     * ollama
 
 3. AI智能体
    * 阿里云百炼
@@ -33,11 +35,31 @@ npm run dev
    * 将draw-ui/deploy目录下的所有文件就是编译过后打包的静态资源，可以直接nginx部署
 
 3. 后端部署
-   后端暂时还没有开发内容
+   * python fastapi部署
+
+```python
+    pip install "fastapi[standard]"
+    pip install ollama
+    fastapi run cloudAiApi.py
+```
 
 #### 使用说明
 
 1. AI绘制版本
+   * 访问地址
+     * https://flyerhome.github.io/flyer-draw/#/cloud-ai
+   * 图例
+   ![img_1.png](img_1.png)
+   * 操作
+     * 可用云模型
+       * qwen3-coder:480b-cloud
+       * gpt-oss:120b-cloud
+       * gpt-oss:20b-cloud
+       * deepseek-v3.1:671b-cloud
+     * 直接输入绘图内容
+     * 点击按钮开始AI绘图
+     * 等会儿
+2. AI绘制版本2
    * 访问地址
      * https://flyerhome.github.io/flyer-draw/#/ai
    * 图例
@@ -54,7 +76,9 @@ npm run dev
        * 在页面上方填入你修改好的Api地址和ApiKey
        * 在文本框填好你要绘制的内容，然后点击开始AI绘制按钮
        * 等待一会儿时间，AI就帮你画好你想要的画面
-2. 手绘版本
+2. AI绘制
+   * 
+3. 手绘版本
    * 访问地址
      * https://flyerhome.github.io/flyer-draw/#/
    * 图例
